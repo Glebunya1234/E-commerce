@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 
 export default function CartPage() {
-  const { cartItems, total, updateQuantity, removeFromCart } = useCart()
+  const { items: cartItems, total, updateQuantity, removeFromCart } = useCart()
   const { user } = useAuth()
   const router = useRouter()
   const { toast } = useToast()

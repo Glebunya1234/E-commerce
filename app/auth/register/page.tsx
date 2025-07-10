@@ -1,188 +1,176 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Eye, EyeOff, Mail, Lock, User, Phone } from "lucide-react"
-import Link from "next/link"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, AlertCircle, CheckCircle, Info } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
-import { useRouter } from "next/navigation"
-import { useToast } from "@/hooks/use-toast"
+import { isDemoMode } from "@/lib/supabase"
 
 export default function RegisterPage() {
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    password: "",
-    confirmPassword: "",
-  })
+  const [fullName, setFullName] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [acceptTerms, setAcceptTerms] = useState(false)
-  const [acceptMarketing, setAcceptMarketing] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const { register } = useAuth()
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const { signUp } = useAuth()
   const router = useRouter()
-  const { toast } = useToast()
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+  const validateForm = () => {
+    if (!fullName.trim()) {
+      setError("Please enter your full name")
+      return false
+    }
+
+    if (!email.trim()) {
+      setError("Please enter your email address")
+      return false
+    }
+
+    if (!email.includes("@")) {
+      setError("Please enter a valid email address")
+      return false
+    }
+
+    if (!password.trim()) {
+      setError("Please enter a password")
+      return false
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long")
+      return false
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match")
+      return false
+    }
+
+    return true
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError("")
 
-    if (!acceptTerms) {
-      toast({
-        title: "Terms required",
-        description: "Please accept the terms and conditions to continue.",
-        variant: "destructive",
-      })
+    if (!validateForm()) {
       return
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      toast({
-        title: "Passwords don't match",
-        description: "Please make sure your passwords match.",
-        variant: "destructive",
-      })
+    setLoading(true)
+
+    const { error: signUpError, success: signUpSuccess } = await signUp(email, password, fullName)
+    setLoading(false)
+
+    if (signUpError) {
+      setError(signUpError)
       return
     }
 
-    if (formData.password.length < 6) {
-      toast({
-        title: "Password too short",
-        description: "Password must be at least 6 characters long.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setIsLoading(true)
-
-    try {
-      const fullName = `${formData.firstName} ${formData.lastName}`.trim()
-      const success = await register(formData.email, formData.password, fullName)
-
-      if (success) {
-        toast({
-          title: "Account created successfully!",
-          description: "Welcome to EliteStore. You can now start shopping.",
-        })
-        router.push("/")
-      } else {
-        toast({
-          title: "Registration failed",
-          description: "Please check your information and try again.",
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
+    if (signUpSuccess) {
+      setSuccess(true)
+      setTimeout(() => {
+        router.push("/auth/login?message=Registration successful! Please sign in.")
+      }, 2000)
     }
   }
 
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-xl border-0">
+          <CardContent className="text-center py-12">
+            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Registration Successful!</h2>
+            <p className="text-gray-600 mb-4">
+              {isDemoMode
+                ? "You can now sign in with your credentials."
+                : "Please check your email to verify your account before signing in."}
+            </p>
+            <p className="text-sm text-gray-500">Redirecting to login page...</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50 py-12 px-4">
-      <div className="w-full max-w-lg">
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center space-x-2 mb-6">
-            <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold">E</span>
-            </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-              EliteStore
-            </span>
-          </Link>
-          <h1 className="text-3xl font-bold text-gray-900">Create Your Account</h1>
-          <p className="text-gray-600 mt-2">Join thousands of satisfied customers</p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Back Button */}
+        <Link href="/" className="inline-flex items-center text-purple-600 hover:text-purple-700 mb-6">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Home
+        </Link>
 
         <Card className="shadow-xl border-0">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">Sign Up</CardTitle>
-            <CardDescription className="text-center">Create your account to start shopping with us</CardDescription>
+          <CardHeader className="space-y-1 text-center">
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Create Account
+            </CardTitle>
+            <CardDescription className="text-gray-600">Join EliteStore and start your shopping journey</CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="firstName"
-                      name="firstName"
-                      placeholder="First name"
-                      value={formData.firstName}
-                      onChange={handleInputChange}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="lastName"
-                      name="lastName"
-                      placeholder="Last name"
-                      value={formData.lastName}
-                      onChange={handleInputChange}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
+
+          <form onSubmit={handleSubmit}>
+            <CardContent className="space-y-6">
+              {/* Demo Mode Notice */}
+              {isDemoMode && (
+                <Alert className="border-blue-200 bg-blue-50">
+                  <Info className="h-4 w-4 text-blue-600" />
+                  <AlertDescription className="text-blue-800">
+                    <strong>Demo Mode:</strong> Registration will create a demo account.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="fullName">Full Name</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={formData.email}
-                    onChange={handleInputChange}
+                    id="fullName"
+                    type="text"
+                    placeholder="Enter your full name"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
                     className="pl-10"
                     required
+                    disabled={loading}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number (Optional)</Label>
+                <Label htmlFor="email">Email Address</Label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    placeholder="Enter your phone number"
-                    value={formData.phone}
-                    onChange={handleInputChange}
+                    id="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
+                    required
+                    disabled={loading}
                   />
                 </div>
               </div>
@@ -193,13 +181,13 @@ export default function RegisterPage() {
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="password"
-                    name="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="Create a password"
-                    value={formData.password}
-                    onChange={handleInputChange}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10"
                     required
+                    disabled={loading}
                   />
                   <Button
                     type="button"
@@ -207,6 +195,7 @@ export default function RegisterPage() {
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={loading}
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4 text-gray-400" />
@@ -215,6 +204,7 @@ export default function RegisterPage() {
                     )}
                   </Button>
                 </div>
+                <p className="text-xs text-gray-500">Password must be at least 6 characters</p>
               </div>
 
               <div className="space-y-2">
@@ -223,13 +213,13 @@ export default function RegisterPage() {
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="confirmPassword"
-                    name="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="Confirm your password"
-                    value={formData.confirmPassword}
-                    onChange={handleInputChange}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     className="pl-10 pr-10"
                     required
+                    disabled={loading}
                   />
                   <Button
                     type="button"
@@ -237,6 +227,7 @@ export default function RegisterPage() {
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    disabled={loading}
                   >
                     {showConfirmPassword ? (
                       <EyeOff className="h-4 w-4 text-gray-400" />
@@ -246,72 +237,25 @@ export default function RegisterPage() {
                   </Button>
                 </div>
               </div>
+            </CardContent>
 
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="terms" checked={acceptTerms} onCheckedChange={setAcceptTerms} />
-                  <Label htmlFor="terms" className="text-sm">
-                    I agree to the{" "}
-                    <Link href="/terms" className="text-purple-600 hover:text-purple-700 underline">
-                      Terms of Service
-                    </Link>{" "}
-                    and{" "}
-                    <Link href="/privacy" className="text-purple-600 hover:text-purple-700 underline">
-                      Privacy Policy
-                    </Link>
-                  </Label>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="marketing" checked={acceptMarketing} onCheckedChange={setAcceptMarketing} />
-                  <Label htmlFor="marketing" className="text-sm">
-                    I want to receive marketing emails about new products and special offers
-                  </Label>
-                </div>
-              </div>
-
+            <CardFooter className="flex flex-col space-y-4">
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                disabled={isLoading}
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-3"
+                disabled={loading}
               >
-                {isLoading ? "Creating Account..." : "Create Account"}
+                {loading ? "Creating Account..." : "Create Account"}
               </Button>
-            </form>
 
-            <div className="mt-6">
-              <Separator className="my-4" />
               <div className="text-center text-sm">
                 <span className="text-gray-600">Already have an account? </span>
                 <Link href="/auth/login" className="text-purple-600 hover:text-purple-700 font-medium">
                   Sign in
                 </Link>
               </div>
-            </div>
-
-            {/* Benefits Section */}
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm font-medium text-gray-700 mb-3">Why join EliteStore?</p>
-              <ul className="text-xs text-gray-600 space-y-2">
-                <li className="flex items-center">
-                  <div className="w-2 h-2 bg-purple-600 rounded-full mr-2"></div>
-                  Exclusive access to member-only deals
-                </li>
-                <li className="flex items-center">
-                  <div className="w-2 h-2 bg-purple-600 rounded-full mr-2"></div>
-                  Free shipping on orders over $50
-                </li>
-                <li className="flex items-center">
-                  <div className="w-2 h-2 bg-purple-600 rounded-full mr-2"></div>
-                  Early access to new product launches
-                </li>
-                <li className="flex items-center">
-                  <div className="w-2 h-2 bg-purple-600 rounded-full mr-2"></div>
-                  Personalized product recommendations
-                </li>
-              </ul>
-            </div>
-          </CardContent>
+            </CardFooter>
+          </form>
         </Card>
       </div>
     </div>

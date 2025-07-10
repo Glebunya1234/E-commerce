@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -57,13 +59,22 @@ export default function AdminPage() {
   const { toast } = useToast()
 
   useEffect(() => {
-    if (!user || user.email !== "admin@elitestore.com") {
+    // Check if user is admin by role instead of hardcoded email
+    if (!user || user.role !== "admin") {
       router.push("/")
     }
   }, [user, router])
 
-  if (!user || user.email !== "admin@elitestore.com") {
-    return null
+  // Show loading or redirect if not admin
+  if (!user || user.role !== "admin") {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
+          <p className="text-gray-600">You need admin privileges to access this page.</p>
+        </div>
+      </div>
+    )
   }
 
   const getStatusColor = (status: string) => {
@@ -132,6 +143,48 @@ export default function AdminPage() {
     setNewProduct((prev) => ({ ...prev, images: updatedImages }))
   }
 
+  const handleImageUpload = (index: number, event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 5MB.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select a valid image file.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Create preview URL
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const result = e.target?.result as string
+      handleImageChange(index, result)
+
+      toast({
+        title: "Image uploaded successfully!",
+        description: `${file.name} has been added to your product.`,
+      })
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const removeImage = (index: number) => {
+    handleImageChange(index, "")
+  }
+
   const addImageField = () => {
     setNewProduct((prev) => ({ ...prev, images: [...prev.images, ""] }))
   }
@@ -147,7 +200,7 @@ export default function AdminPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p className="text-gray-600 mt-2">Manage your store and monitor performance</p>
+        <p className="text-gray-600 mt-2">Welcome back, {user.full_name}! Manage your store and monitor performance</p>
       </div>
 
       {/* Stats Cards */}
@@ -456,31 +509,68 @@ export default function AdminPage() {
                   </Button>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {newProduct.images.map((image, index) => (
-                    <div key={index} className="flex gap-2">
-                      <Input
-                        value={image}
-                        onChange={(e) => handleImageChange(index, e.target.value)}
-                        placeholder="Enter image URL or upload path"
-                        className="flex-1"
-                      />
-                      {newProduct.images.length > 1 && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => removeImageField(index)}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                    <div key={index} className="border rounded-lg p-4 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <Label className="text-sm font-medium">Image {index + 1}</Label>
+                        {newProduct.images.length > 1 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeImageField(index)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* File Upload Input */}
+                      <div className="space-y-2">
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleImageUpload(index, e)}
+                          className="cursor-pointer"
+                        />
+                        <p className="text-xs text-gray-500">Upload JPG, PNG, or WebP images (max 5MB)</p>
+                      </div>
+
+                      {/* Image Preview */}
+                      {image && (
+                        <div className="relative">
+                          <img
+                            src={image || "/placeholder.svg"}
+                            alt={`Product preview ${index + 1}`}
+                            className="w-full h-32 object-cover rounded-md border"
+                          />
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => removeImage(index)}
+                            className="absolute top-2 right-2"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
                       )}
+
+                      {/* Alternative URL Input */}
+                      <div className="space-y-2">
+                        <Label className="text-sm text-gray-600">Or enter image URL:</Label>
+                        <Input
+                          value={typeof image === "string" && image.startsWith("http") ? image : ""}
+                          onChange={(e) => handleImageChange(index, e.target.value)}
+                          placeholder="https://example.com/image.jpg"
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>
 
                 <p className="text-sm text-gray-500">
-                  Add product image URLs. The first image will be used as the main product image.
+                  Upload product images or provide URLs. The first image will be used as the main product image.
                 </p>
               </div>
 
