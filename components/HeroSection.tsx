@@ -10,24 +10,24 @@ export default function HeroSection() {
 
   const slides = [
     {
-      title: "Premium Collection 2024",
+      title: "Premium Collection 2025",
       subtitle: "Discover Luxury Redefined",
       description: "Explore our curated selection of premium products designed for the modern lifestyle",
-      image: "/placeholder.svg?height=600&width=800",
+      image: "/hero-image2.png",
       cta: "Shop Collection",
     },
     {
       title: "Tech Innovation",
       subtitle: "Future is Here",
       description: "Experience cutting-edge technology that transforms your daily routine",
-      image: "/placeholder.svg?height=600&width=800",
+      image: "/hero1.jpg",
       cta: "Explore Tech",
     },
     {
       title: "Sustainable Living",
       subtitle: "Eco-Friendly Choices",
       description: "Make a difference with our environmentally conscious product line",
-      image: "/placeholder.svg?height=600&width=800",
+      image: "/hero-image3.png",
       cta: "Go Green",
     },
   ]

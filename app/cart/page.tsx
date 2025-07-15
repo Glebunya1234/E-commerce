@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 
 export default function CartPage() {
-  const { items: cartItems, total, updateQuantity, removeFromCart } = useCart()
+  const { items: cartItems, total, updateQuantity, removeItem } = useCart()
   const { user } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
@@ -20,7 +20,7 @@ export default function CartPage() {
 
   const handleQuantityChange = (id: string, newQuantity: number) => {
     if (newQuantity < 1) {
-      removeFromCart(id)
+      removeItem(id)
     } else {
       updateQuantity(id, newQuantity)
     }
@@ -113,7 +113,7 @@ export default function CartPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => removeFromCart(item.id)}
+                      onClick={() => removeItem(item.id)}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
                       <Trash2 className="h-4 w-4" />
