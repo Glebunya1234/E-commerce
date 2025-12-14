@@ -1,35 +1,34 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Star, ShoppingCart, Heart, Eye } from "lucide-react"
-import Link from "next/link"
-import { useCart } from "@/contexts/CartContext"
-import { useToast } from "@/hooks/use-toast"
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Star, ShoppingCart, Heart, Eye } from "lucide-react";
+import Link from "next/link";
+import { useCart } from "@/contexts/CartContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface Product {
-  id: string
-  name: string
-  price: number
-  originalPrice?: number
-  image: string
-  rating: number
-  reviews: number
-  category: string
-  isNew?: boolean
-  isSale?: boolean
+  id: string;
+  name: string;
+  price: number;
+  originalPrice?: number;
+  image: string;
+  rating: number;
+  reviews: number;
+  category: string;
+  isNew?: boolean;
+  isSale?: boolean;
 }
 
 export default function FeaturedProducts() {
-  const [products, setProducts] = useState<Product[]>([])
-  const [hoveredProduct, setHoveredProduct] = useState<string | null>(null)
-  const { addToCart } = useCart()
-  const { toast } = useToast()
+  const [products, setProducts] = useState<Product[]>([]);
+  const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
+  const { addToCart } = useCart();
+  const { toast } = useToast();
 
   useEffect(() => {
-    // Mock featured products data
     const mockProducts: Product[] = [
       {
         id: "1",
@@ -72,9 +71,9 @@ export default function FeaturedProducts() {
         category: "Photography",
         isSale: true,
       },
-    ]
-    setProducts(mockProducts)
-  }, [])
+    ];
+    setProducts(mockProducts);
+  }, []);
 
   const handleAddToCart = (product: Product) => {
     addToCart({
@@ -82,21 +81,23 @@ export default function FeaturedProducts() {
       name: product.name,
       price: product.price,
       image: product.image,
-      quantity: 1,
-    })
+    });
     toast({
       title: "Added to cart!",
       description: `${product.name} has been added to your cart.`,
-    })
-  }
+    });
+  };
 
   return (
     <section className="py-16 bg-gray-50">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">Featured Products</h2>
+          <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            Featured Products
+          </h2>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Discover our handpicked selection of premium products that combine quality, style, and innovation
+            Discover our handpicked selection of premium products that combine
+            quality, style, and innovation
           </p>
         </div>
 
@@ -118,21 +119,39 @@ export default function FeaturedProducts() {
 
                   {/* Badges */}
                   <div className="absolute top-4 left-4 flex flex-col gap-2">
-                    {product.isNew && <Badge className="bg-green-500 hover:bg-green-600">New</Badge>}
-                    {product.isSale && <Badge className="bg-red-500 hover:bg-red-600">Sale</Badge>}
+                    {product.isNew && (
+                      <Badge className="bg-green-500 hover:bg-green-600">
+                        New
+                      </Badge>
+                    )}
+                    {product.isSale && (
+                      <Badge className="bg-red-500 hover:bg-red-600">
+                        Sale
+                      </Badge>
+                    )}
                   </div>
 
                   {/* Quick Actions */}
                   <div
                     className={`absolute top-4 right-4 flex flex-col gap-2 transition-opacity duration-300 ${
-                      hoveredProduct === product.id ? "opacity-100" : "opacity-0"
+                      hoveredProduct === product.id
+                        ? "opacity-100"
+                        : "opacity-0"
                     }`}
                   >
-                    <Button size="sm" variant="secondary" className="w-10 h-10 p-0 rounded-full">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="w-10 h-10 p-0 rounded-full"
+                    >
                       <Heart className="h-4 w-4" />
                     </Button>
                     <Link href={`/products/${product.id}`}>
-                      <Button size="sm" variant="secondary" className="w-10 h-10 p-0 rounded-full">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="w-10 h-10 p-0 rounded-full"
+                      >
                         <Eye className="h-4 w-4" />
                       </Button>
                     </Link>
@@ -141,7 +160,9 @@ export default function FeaturedProducts() {
                   {/* Add to Cart Overlay */}
                   <div
                     className={`absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/80 to-transparent transition-opacity duration-300 ${
-                      hoveredProduct === product.id ? "opacity-100" : "opacity-0"
+                      hoveredProduct === product.id
+                        ? "opacity-100"
+                        : "opacity-0"
                     }`}
                   >
                     <Button
@@ -156,10 +177,14 @@ export default function FeaturedProducts() {
 
                 <div className="p-6">
                   <div className="mb-2">
-                    <span className="text-sm text-purple-600 font-medium">{product.category}</span>
+                    <span className="text-sm text-purple-600 font-medium">
+                      {product.category}
+                    </span>
                   </div>
 
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">{product.name}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+                    {product.name}
+                  </h3>
 
                   <div className="flex items-center mb-3">
                     <div className="flex items-center">
@@ -167,19 +192,27 @@ export default function FeaturedProducts() {
                         <Star
                           key={i}
                           className={`h-4 w-4 ${
-                            i < Math.floor(product.rating) ? "text-yellow-400 fill-current" : "text-gray-300"
+                            i < Math.floor(product.rating)
+                              ? "text-yellow-400 fill-current"
+                              : "text-gray-300"
                           }`}
                         />
                       ))}
                     </div>
-                    <span className="text-sm text-gray-600 ml-2">({product.reviews})</span>
+                    <span className="text-sm text-gray-600 ml-2">
+                      ({product.reviews})
+                    </span>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-xl font-bold text-gray-900">${product.price}</span>
+                      <span className="text-xl font-bold text-gray-900">
+                        ${product.price}
+                      </span>
                       {product.originalPrice && (
-                        <span className="text-sm text-gray-500 line-through">${product.originalPrice}</span>
+                        <span className="text-sm text-gray-500 line-through">
+                          ${product.originalPrice}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -201,5 +234,5 @@ export default function FeaturedProducts() {
         </div>
       </div>
     </section>
-  )
+  );
 }
