@@ -628,7 +628,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ShoppingCart, Heart, Eye, Search, Grid, List } from "lucide-react";
+import { ShoppingCart, Heart, Eye, Search } from "lucide-react";
 import Link from "next/link";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
@@ -640,7 +640,7 @@ interface Product {
   price: number;
   quantity: number;
   status: string;
-  categories: string[]; // теперь массив категорий
+  categories: string[];
   description: string;
   image?: string;
   inStock: boolean;
@@ -659,7 +659,6 @@ export default function ProductsPage() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [minPrice, setMinPrice] = useState(0);
   const [maxPrice, setMaxPrice] = useState(10000);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const { addToCart } = useCart();
   const { toast } = useToast();
 
@@ -689,7 +688,6 @@ export default function ProductsPage() {
   // Загружаем продукты с категориями
   useEffect(() => {
     const fetchProducts = async () => {
-      // 1. Получаем все связи product_categories
       const { data: productCats, error: pcError } = await supabase
         .from("product_categories")
         .select("*");
@@ -699,7 +697,6 @@ export default function ProductsPage() {
         return;
       }
 
-      // 2. Получаем продукты
       const { data: productsData, error: prodError } = await supabase
         .from("products")
         .select("*");
@@ -723,21 +720,17 @@ export default function ProductsPage() {
           if (!cat) return;
 
           if (cat.parent_id === null) {
-            // родительская категория
             if (!parentCategories.includes(cat.name))
               parentCategories.push(cat.name);
           } else {
-            // дочерняя категория
             if (!childCategories.includes(cat.name))
               childCategories.push(cat.name);
-            // добавляем родителя тоже
             const parent = categoryMap[cat.parent_id];
             if (parent && !parentCategories.includes(parent.name))
               parentCategories.push(parent.name);
           }
         });
 
-        // Объединяем так, чтобы сначала родительские, потом дочерние
         const allCategories = [
           ...parentCategories,
           ...childCategories.filter((c) => !parentCategories.includes(c)),
@@ -763,7 +756,7 @@ export default function ProductsPage() {
     if (Object.keys(categoryMap).length > 0) {
       fetchProducts();
     }
-  }, [categoryMap, categories]);
+  }, [categoryMap]);
 
   // Фильтры по поиску, категории и цене
   useEffect(() => {
@@ -817,7 +810,7 @@ export default function ProductsPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">Our Products</h1>
+        <h1 className="text-4xl font-bold text-gray-900 mb-4">All Products</h1>
         <p className="text-xl text-gray-600">
           Discover our complete collection of premium products
         </p>
@@ -825,32 +818,14 @@ export default function ProductsPage() {
 
       {/* Filters and Search */}
       <div className="mb-8 space-y-4">
-        <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search products..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant={viewMode === "grid" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setViewMode("grid")}
-            >
-              <Grid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "list" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setViewMode("list")}
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search products..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
         </div>
 
         <div className="flex flex-col lg:flex-row gap-4 items-center">
@@ -899,22 +874,12 @@ export default function ProductsPage() {
         </p>
       </div>
 
-      {/* Products Grid/List */}
-      <div
-        className={
-          viewMode === "grid"
-            ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-            : "space-y-4"
-        }
-      >
+      {/* Products */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filteredProducts.map((product) => (
           <Card
             key={product.id}
-            className={`group transition-all duration-300 hover:shadow-xl border-0 shadow-md ${
-              viewMode === "list"
-                ? "flex flex-row overflow-hidden"
-                : "hover:-translate-y-2"
-            }`}
+            className="group transition-all duration-300 hover:shadow-xl border-0 shadow-md"
           >
             <CardContent className="p-0">
               <Link href={`/products/${product.id}`} className="block">
@@ -946,6 +911,7 @@ export default function ProductsPage() {
                   </div>
                 </div>
               </Link>
+
               <div className="p-6">
                 <div className="mb-2">
                   {product.categories.map((cat, index) => (
@@ -958,6 +924,7 @@ export default function ProductsPage() {
                     </span>
                   ))}
                 </div>
+
                 <Link href={`/products/${product.id}`}>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2 hover:text-purple-600 transition-colors">
                     {product.name}
@@ -973,14 +940,23 @@ export default function ProductsPage() {
                     </span>
                   </div>
                 </div>
-                <Button
-                  onClick={(e) => handleAddToCart(product, e)}
-                  className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                  disabled={!product.inStock}
-                >
-                  <ShoppingCart className="mr-2 h-4 w-4" />
-                  {product.inStock ? "Add to Cart" : "Out of Stock"}
-                </Button>
+
+                <div className="flex w-full gap-2 justify-between">
+                  <Link href={`/products/${product.id}`} className="w-full">
+                    <Button variant="outline" className="w-full">
+                      <Eye className="h-4 w-5" />
+                      View Details
+                    </Button>
+                  </Link>
+                  <Button
+                    onClick={(e) => handleAddToCart(product, e)}
+                    disabled={!product.inStock}
+                    className="bg-gradient-to-r w-full from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                  >
+                    <ShoppingCart className="mr-2 h-4 w-5" />
+                    {product.inStock ? "Add to Cart" : "Out of Stock"}
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

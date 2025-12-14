@@ -78,7 +78,6 @@ export default function Navbar() {
               EliteStore
             </Link>
           </div>
-
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
             <Link
@@ -110,8 +109,7 @@ export default function Navbar() {
               Products
             </Link>
           </div>
-
-          {/* Search Bar */}
+          {/* Search Bar
           <div className="hidden md:flex flex-1 max-w-lg mx-8">
             <form onSubmit={handleSearch} className="w-full">
               <div className="relative">
@@ -125,8 +123,7 @@ export default function Navbar() {
                 />
               </div>
             </form>
-          </div>
-
+          </div> */}
           {/* Right Side Icons */}
           <div className="flex items-center space-x-4">
             {/* Cart */}

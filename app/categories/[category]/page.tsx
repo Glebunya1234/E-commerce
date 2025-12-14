@@ -856,92 +856,104 @@ export default function CategoryPage() {
   if (!category) return <div>Loading...</div>;
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          {category.name}
-        </h1>
-      </div>
-
-      <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredProducts.map((product) => (
-          <Card
-            key={product.id}
-            className="group transition-all duration-300 hover:shadow-xl border-0 shadow-md"
-          >
-            <CardContent className="p-0">
-              <Link href={`/products/${product.id}`} className="block">
-                <div className="relative overflow-hidden rounded-t-lg">
-                  <img
-                    src={product.image || "/placeholder.svg"}
-                    alt={product.name}
-                    className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-110"
-                  />
-                  {!product.inStock && (
-                    <Badge className="absolute top-4 left-4 bg-gray-500">
-                      Out of Stock
-                    </Badge>
-                  )}
-                  <div className="absolute top-4 right-4 flex flex-col gap-2">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="w-10 h-10 p-0 rounded-full bg-white/90 hover:bg-white"
-                    >
-                      <Heart className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                    <Button className="bg-white text-black hover:bg-gray-100">
-                      <Eye className="mr-2 h-4 w-4" />
-                      View Details
-                    </Button>
-                  </div>
-                </div>
-              </Link>
-              <div className="p-6">
-                {product.category && (
-                  <span className="text-sm text-purple-600 font-medium capitalize mb-2 block">
-                    {product.category}
-                  </span>
-                )}
-                <Link href={`/products/${product.id}`}>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2 hover:text-purple-600 transition-colors">
-                    {product.name}
-                  </h3>
-                </Link>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-xl font-bold text-gray-900">
-                    ${product.price}
-                  </span>
-                </div>
-                <Button
-                  onClick={() => handleAddToCart(product)}
-                  className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                  disabled={!product.inStock}
-                >
-                  <ShoppingCart className="mr-2 h-4 w-4" />
-                  {product.inStock ? "Add to Cart" : "Out of Stock"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredProducts.length === 0 && (
-        <div className="text-center py-16">
-          <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Search className="w-12 h-12 text-gray-400" />
-          </div>
-          <h3 className="text-2xl font-semibold text-gray-900 mb-2">
-            No products found
-          </h3>
-          <p className="text-gray-600 mb-6">
-            Try adjusting your search or filter criteria
-          </p>
+    <>
+      <div className="relative h-60 my-10 bg-gradient-to-r from-purple-600 to-pink-600 overflow-hidden">
+        <div className="relative container mx-auto px-4 h-full flex items-center">
+          <h1 className="text-4xl text-white lg:text-7xl font-bold mb-4">
+            {category.name}
+          </h1>
         </div>
-      )}
-    </div>
+      </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredProducts.map((product) => (
+            <Card
+              key={product.id}
+              className="group transition-all duration-300 hover:shadow-xl border-0 shadow-md"
+            >
+              <CardContent className="p-0">
+                <Link href={`/products/${product.id}`} className="block">
+                  <div className="relative overflow-hidden rounded-t-lg">
+                    <img
+                      src={product.image || "/placeholder.svg"}
+                      alt={product.name}
+                      className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-110"
+                    />
+                    {!product.inStock && (
+                      <Badge className="absolute top-4 left-4 bg-gray-500">
+                        Out of Stock
+                      </Badge>
+                    )}
+                    <div className="absolute top-4 right-4 flex flex-col gap-2">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="w-10 h-10 p-0 rounded-full bg-white/90 hover:bg-white"
+                      >
+                        <Heart className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                      <Button className="bg-white text-black hover:bg-gray-100">
+                        <Eye className="mr-2 h-4 w-4" />
+                        View Details
+                      </Button>
+                    </div>
+                  </div>
+                </Link>
+                <div className="p-6">
+                  {product.category && (
+                    <span className="text-sm text-purple-600 font-medium capitalize mb-2 block">
+                      {product.category}
+                    </span>
+                  )}
+                  <Link href={`/products/${product.id}`}>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2 hover:text-purple-600 transition-colors">
+                      {product.name}
+                    </h3>
+                  </Link>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-xl font-bold text-gray-900">
+                      ${product.price}
+                    </span>
+                  </div>
+
+                  <div className="flex w-full gap-2 justify-between">
+                    <Link href={`/products/${product.id}`} className="w-full">
+                      <Button variant="outline" className="w-full">
+                        <Eye className="h-4 w-5" />
+                        View Details
+                      </Button>
+                    </Link>
+                    <Button
+                      onClick={() => handleAddToCart(product)}
+                      className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                      disabled={!product.inStock}
+                    >
+                      <ShoppingCart className="mr-2 h-4 w-4" />
+                      {product.inStock ? "Add to Cart" : "Out of Stock"}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {filteredProducts.length === 0 && (
+          <div className="text-center py-16">
+            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Search className="w-12 h-12 text-gray-400" />
+            </div>
+            <h3 className="text-2xl font-semibold text-gray-900 mb-2">
+              No products found
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Try adjusting your search or filter criteria
+            </p>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
