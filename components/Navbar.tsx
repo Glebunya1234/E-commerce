@@ -1,34 +1,69 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState } from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { ShoppingCart, User, Search, Menu, ChevronDown, LogOut } from "@/lib/icons"
-import { useAuth } from "@/contexts/AuthContext"
-import { useCart } from "@/contexts/CartContext"
+import type React from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  ShoppingCart,
+  User,
+  Search,
+  Menu,
+  ChevronDown,
+  LogOut,
+} from "@/lib/icons";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
+import { supabase } from "@/lib/supabase";
 
 export default function Navbar() {
-  const [isOpen, setIsOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
-  const { user, logout } = useAuth()
-  const { items } = useCart()
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const { user, logout } = useAuth();
+  const { items } = useCart();
+
+  const [categories, setCategories] = useState<{ id: number; name: string }[]>(
+    []
+  );
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("id, name, parent_id")
+        .is("parent_id", null);
+      if (error) {
+        console.error(error);
+        return;
+      }
+      if (data) {
+        setCategories(data);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (searchQuery.trim()) {
-      // Navigate to search results
-      window.location.href = `/products?search=${encodeURIComponent(searchQuery)}`
+      window.location.href = `/products?search=${encodeURIComponent(
+        searchQuery
+      )}`;
     }
-  }
+  };
 
   const handleLogout = async () => {
-    await logout()
-  }
+    await logout();
+  };
 
   return (
     <nav className="bg-white shadow-sm border-b sticky top-0 z-50">
@@ -46,7 +81,10 @@ export default function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            <Link href="/" className="text-gray-700 hover:text-purple-600 transition-colors">
+            <Link
+              href="/"
+              className="text-gray-700 hover:text-purple-600 transition-colors"
+            >
               Home
             </Link>
             <DropdownMenu>
@@ -55,28 +93,21 @@ export default function Navbar() {
                 <ChevronDown className="ml-1 h-4 w-4" />
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem>
-                  <Link href="/categories/electronics">Electronics</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Link href="/categories/clothing">Clothing</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Link href="/categories/home">Home & Garden</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Link href="/categories/sports">Sports</Link>
-                </DropdownMenuItem>
+                {categories.map((category) => (
+                  <DropdownMenuItem key={category.id}>
+                    <Link href={`/categories/${category.name}`}>
+                      {category.name}
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            <Link href="/products" className="text-gray-700 hover:text-purple-600 transition-colors">
+
+            <Link
+              href="/products"
+              className="text-gray-700 hover:text-purple-600 transition-colors"
+            >
               Products
-            </Link>
-            <Link href="/about" className="text-gray-700 hover:text-purple-600 transition-colors">
-              About
-            </Link>
-            <Link href="/contact" className="text-gray-700 hover:text-purple-600 transition-colors">
-              Contact
             </Link>
           </div>
 
@@ -114,9 +145,13 @@ export default function Navbar() {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="flex items-center space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="flex items-center space-x-2"
+                  >
                     <User className="h-5 w-5" />
-                    <span className="hidden sm:inline">{user.full_name || user.email}</span>
+                    <span className="hidden sm:inline">{user.email}</span>
                     <ChevronDown className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -132,7 +167,10 @@ export default function Navbar() {
                       <Link href="/admin">Admin Panel</Link>
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="text-red-600"
+                  >
                     <LogOut className="mr-2 h-4 w-4" />
                     Logout
                   </DropdownMenuItem>
@@ -244,7 +282,11 @@ export default function Navbar() {
                           Admin Panel
                         </Link>
                       )}
-                      <Button variant="ghost" onClick={handleLogout} className="justify-start text-red-600 p-2">
+                      <Button
+                        variant="ghost"
+                        onClick={handleLogout}
+                        className="justify-start text-red-600 p-2"
+                      >
                         <LogOut className="mr-2 h-4 w-4" />
                         Logout
                       </Button>
@@ -252,11 +294,17 @@ export default function Navbar() {
                   ) : (
                     <div className="flex flex-col space-y-2 pt-4 border-t">
                       <Link href="/auth/login" onClick={() => setIsOpen(false)}>
-                        <Button variant="ghost" className="w-full justify-start">
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start"
+                        >
                           Sign In
                         </Button>
                       </Link>
-                      <Link href="/auth/register" onClick={() => setIsOpen(false)}>
+                      <Link
+                        href="/auth/register"
+                        onClick={() => setIsOpen(false)}
+                      >
                         <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
                           Sign Up
                         </Button>
@@ -270,5 +318,5 @@ export default function Navbar() {
         </div>
       </div>
     </nav>
-  )
+  );
 }

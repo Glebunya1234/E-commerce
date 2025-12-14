@@ -620,7 +620,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -636,12 +635,12 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 
 interface Product {
-  id: string;
+  id: number;
   name: string;
   price: number;
   quantity: number;
   status: string;
-  category: string; // здесь будет имя родительской категории
+  categories: string[]; // теперь массив категорий
   description: string;
   image?: string;
   inStock: boolean;
@@ -665,9 +664,9 @@ export default function ProductsPage() {
   const { toast } = useToast();
 
   const [categories, setCategories] = useState<Category[]>([]);
-  const [categoryMap, setCategoryMap] = useState<Record<number, string>>({});
+  const [categoryMap, setCategoryMap] = useState<Record<number, Category>>({});
 
-  // Загружаем категории из БД и строим мапу id -> родительская категория
+  // Загружаем категории и строим мапу id -> объект категории
   useEffect(() => {
     const fetchCategories = async () => {
       const { data, error } = await supabase.from("categories").select("*");
@@ -677,14 +676,9 @@ export default function ProductsPage() {
       }
       if (data) {
         setCategories(data);
-        const map: Record<number, string> = {};
+        const map: Record<number, Category> = {};
         data.forEach((c) => {
-          if (c.parent_id === null) {
-            map[c.id] = c.name; // главная категория сама себе
-          } else {
-            const parent = data.find((p) => p.id === c.parent_id);
-            map[c.id] = parent ? parent.name : c.name;
-          }
+          map[c.id] = c;
         });
         setCategoryMap(map);
       }
@@ -692,46 +686,84 @@ export default function ProductsPage() {
     fetchCategories();
   }, []);
 
-  // Загружаем продукты
+  // Загружаем продукты с категориями
   useEffect(() => {
     const fetchProducts = async () => {
-      const { data, error } = await supabase.from("products").select(`
-          id,
-          name,
-          price,
-          quantity,
-          status,
-          product_categories!inner(category_id)
-        `);
+      // 1. Получаем все связи product_categories
+      const { data: productCats, error: pcError } = await supabase
+        .from("product_categories")
+        .select("*");
 
-      if (error) {
-        console.error(error);
+      if (pcError) {
+        console.error(pcError);
         return;
       }
 
-      const mappedProducts: Product[] = (data || []).map((p: any) => ({
-        id: String(p.id),
-        name: p.name,
-        price: Number(p.price),
-        quantity: Number(p.quantity),
-        status: p.status,
-        category: p.product_categories?.[0]?.category_id
-          ? categoryMap[p.product_categories[0].category_id] || "Uncategorized"
-          : "Uncategorized",
-        description: "No description available",
-        inStock: p.quantity > 0,
-        image: "/placeholder.svg",
-      }));
+      // 2. Получаем продукты
+      const { data: productsData, error: prodError } = await supabase
+        .from("products")
+        .select("*");
+
+      if (prodError) {
+        console.error(prodError);
+        return;
+      }
+
+      const mappedProducts: Product[] = (productsData || []).map((p: any) => {
+        const productCategoryIds =
+          productCats
+            ?.filter((pc) => pc.product_id === p.id)
+            .map((pc) => pc.category_id) || [];
+
+        const parentCategories: string[] = [];
+        const childCategories: string[] = [];
+
+        productCategoryIds.forEach((id) => {
+          const cat = categoryMap[id];
+          if (!cat) return;
+
+          if (cat.parent_id === null) {
+            // родительская категория
+            if (!parentCategories.includes(cat.name))
+              parentCategories.push(cat.name);
+          } else {
+            // дочерняя категория
+            if (!childCategories.includes(cat.name))
+              childCategories.push(cat.name);
+            // добавляем родителя тоже
+            const parent = categoryMap[cat.parent_id];
+            if (parent && !parentCategories.includes(parent.name))
+              parentCategories.push(parent.name);
+          }
+        });
+
+        // Объединяем так, чтобы сначала родительские, потом дочерние
+        const allCategories = [
+          ...parentCategories,
+          ...childCategories.filter((c) => !parentCategories.includes(c)),
+        ];
+
+        return {
+          id: p.id,
+          name: p.name,
+          price: Number(p.price),
+          quantity: Number(p.quantity),
+          status: p.status,
+          inStock: p.quantity > 0 && p.status === "free",
+          categories: allCategories,
+          description: "No description available",
+          image: "/placeholder.svg",
+        };
+      });
 
       setProducts(mappedProducts);
       setFilteredProducts(mappedProducts);
     };
 
-    // Ждём пока загрузится categoryMap
     if (Object.keys(categoryMap).length > 0) {
       fetchProducts();
     }
-  }, [categoryMap]);
+  }, [categoryMap, categories]);
 
   // Фильтры по поиску, категории и цене
   useEffect(() => {
@@ -744,7 +776,9 @@ export default function ProductsPage() {
     }
 
     if (selectedCategory !== "all") {
-      filtered = filtered.filter((p) => p.category === selectedCategory);
+      filtered = filtered.filter((p) =>
+        p.categories.includes(selectedCategory)
+      );
     }
 
     filtered = filtered.filter(
@@ -836,7 +870,6 @@ export default function ProductsPage() {
             </SelectContent>
           </Select>
 
-          {/* Price range */}
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-600">Price:</span>
             <input
@@ -892,9 +925,9 @@ export default function ProductsPage() {
                     className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-110"
                   />
                   {!product.inStock && (
-                    <Badge className="absolute top-4 left-4 bg-gray-500">
+                    <span className="absolute top-4 left-4 bg-gray-500 text-white px-2 py-1 text-sm rounded">
                       Out of Stock
-                    </Badge>
+                    </span>
                   )}
                   <div className="absolute top-4 right-4 flex flex-col gap-2">
                     <Button
@@ -915,9 +948,15 @@ export default function ProductsPage() {
               </Link>
               <div className="p-6">
                 <div className="mb-2">
-                  <span className="text-sm text-purple-600 font-medium capitalize">
-                    {product.category}
-                  </span>
+                  {product.categories.map((cat, index) => (
+                    <span
+                      key={cat}
+                      className="text-sm text-purple-600 font-medium capitalize"
+                    >
+                      {cat}
+                      {index < product.categories.length - 1 ? ", " : ""}
+                    </span>
+                  ))}
                 </div>
                 <Link href={`/products/${product.id}`}>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2 hover:text-purple-600 transition-colors">
@@ -947,31 +986,6 @@ export default function ProductsPage() {
           </Card>
         ))}
       </div>
-
-      {filteredProducts.length === 0 && (
-        <div className="text-center py-16">
-          <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Search className="w-12 h-12 text-gray-400" />
-          </div>
-          <h3 className="text-2xl font-semibold text-gray-900 mb-2">
-            No products found
-          </h3>
-          <p className="text-gray-600 mb-6">
-            Try adjusting your search or filter criteria
-          </p>
-          <Button
-            onClick={() => {
-              setSearchTerm("");
-              setSelectedCategory("all");
-              setMinPrice(0);
-              setMaxPrice(10000);
-            }}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-          >
-            Clear Filters
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
