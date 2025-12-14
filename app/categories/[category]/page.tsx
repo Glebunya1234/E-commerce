@@ -884,15 +884,7 @@ export default function CategoryPage() {
                         Out of Stock
                       </Badge>
                     )}
-                    <div className="absolute top-4 right-4 flex flex-col gap-2">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="w-10 h-10 p-0 rounded-full bg-white/90 hover:bg-white"
-                      >
-                        <Heart className="h-4 w-4" />
-                      </Button>
-                    </div>
+
                     <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                       <Button className="bg-white text-black hover:bg-gray-100">
                         <Eye className="mr-2 h-4 w-4" />
@@ -918,9 +910,9 @@ export default function CategoryPage() {
                     </span>
                   </div>
 
-                  <div className="flex w-full gap-2 justify-between">
+                  <div className="flex w-full gap-2 justify-center">
                     <Link href={`/products/${product.id}`} className="w-full">
-                      <Button variant="outline" className="w-full">
+                      <Button variant="outline">
                         <Eye className="h-4 w-5" />
                         View Details
                       </Button>
