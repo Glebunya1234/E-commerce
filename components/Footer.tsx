@@ -8,10 +8,11 @@ export default function Footer() {
               <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">E</span>
               </div>
-              <span className="text-xl font-bold">EliteStore</span>
+              <span className="text-xl font-bold">E-Commerce</span>
             </div>
             <p className="text-gray-400 mb-4">
-              Your premium destination for quality products and exceptional shopping experience.
+              Your premium destination for quality products and exceptional
+              shopping experience.
             </p>
           </div>
 
@@ -19,23 +20,18 @@ export default function Footer() {
             <h3 className="font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2 text-gray-400">
               <li>
-                <a href="/products" className="hover:text-white transition-colors">
+                <a href="#" className="hover:text-white transition-colors">
+                  Home
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-white transition-colors">
                   Products
                 </a>
               </li>
               <li>
-                <a href="/categories" className="hover:text-white transition-colors">
+                <a href="#" className="hover:text-white transition-colors">
                   Categories
-                </a>
-              </li>
-              <li>
-                <a href="/about" className="hover:text-white transition-colors">
-                  About Us
-                </a>
-              </li>
-              <li>
-                <a href="/contact" className="hover:text-white transition-colors">
-                  Contact
                 </a>
               </li>
             </ul>
@@ -45,22 +41,22 @@ export default function Footer() {
             <h3 className="font-semibold mb-4">Customer Service</h3>
             <ul className="space-y-2 text-gray-400">
               <li>
-                <a href="/help" className="hover:text-white transition-colors">
+                <a href="#" className="hover:text-white transition-colors">
                   Help Center
                 </a>
               </li>
               <li>
-                <a href="/shipping" className="hover:text-white transition-colors">
+                <a href="#" className="hover:text-white transition-colors">
                   Shipping Info
                 </a>
               </li>
               <li>
-                <a href="/returns" className="hover:text-white transition-colors">
+                <a href="#" className="hover:text-white transition-colors">
                   Returns
                 </a>
               </li>
               <li>
-                <a href="/faq" className="hover:text-white transition-colors">
+                <a href="#" className="hover:text-white transition-colors">
                   FAQ
                 </a>
               </li>
@@ -95,9 +91,11 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-          <p>&copy; 2025 EliteStore(MVP).Developed by AdenuelTech All rights reserved.</p>
+          <p>
+            &copy; 2025 E-Commerce Created by Buskiy Gleb All rights reserved.
+          </p>
         </div>
       </div>
     </footer>
-  )
+  );
 }

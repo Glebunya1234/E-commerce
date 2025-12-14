@@ -711,8 +711,9 @@ interface Product {
   status: string;
   seller_id: number | null;
   inStock: boolean;
-  image?: string; // placeholder
-  category?: string; // можно выводить первую подкатегорию
+  mini_description?: string;
+  image?: string;
+  category?: string;
 }
 
 interface Category {
@@ -748,7 +749,6 @@ export default function CategoryPage() {
     fetchCategory();
   }, [categorySlug]);
 
-  // Получаем товары из подкатегорий
   useEffect(() => {
     if (!category) return;
 
@@ -812,6 +812,7 @@ export default function CategoryPage() {
         quantity: p.quantity,
         status: p.status,
         seller_id: p.seller_id,
+        mini_description: p.mini_description || "",
         inStock: p.quantity > 0 && p.status === "free",
         image: "/placeholder.svg",
         category:
@@ -819,7 +820,7 @@ export default function CategoryPage() {
             productCats.some(
               (pc) => pc.product_id === p.id && pc.category_id === c.id
             )
-          )?.name || category.name, // если не подкатегория, выводим главную
+          )?.name || category.name,
       }));
 
       setProducts(mappedProducts);
@@ -845,6 +846,7 @@ export default function CategoryPage() {
       id: product.id,
       name: product.name,
       price: product.price,
+      quantity: 1,
       image: product.image || "",
     });
     toast({
@@ -904,6 +906,9 @@ export default function CategoryPage() {
                       {product.name}
                     </h3>
                   </Link>
+                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                    {product.mini_description}
+                  </p>
                   <div className="flex items-center justify-between mb-4">
                     <span className="text-xl font-bold text-gray-900">
                       ${product.price}

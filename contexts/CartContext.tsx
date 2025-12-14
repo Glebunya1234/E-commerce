@@ -9,12 +9,13 @@ interface CartItem {
   price: number;
   quantity: number;
   image: string;
+  variant?: string;
 }
 
 interface CartContextType {
   items: CartItem[];
   addItem: (item: Omit<CartItem, "quantity">) => void;
-  addToCart: (item: Omit<CartItem, "quantity">) => void; // Alias for backward compatibility
+  addToCart: (item: CartItem) => void;
   removeItem: (id: number) => void;
   updateQuantity: (id: number, quantity: number) => void;
   clearCart: () => void;

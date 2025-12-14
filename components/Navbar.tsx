@@ -75,7 +75,7 @@ export default function Navbar() {
               href="/"
               className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent"
             >
-              EliteStore
+              E-Commerce
             </Link>
           </div>
           {/* Desktop Navigation */}

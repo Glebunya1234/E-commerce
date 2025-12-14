@@ -641,7 +641,7 @@ interface Product {
   quantity: number;
   status: string;
   categories: string[];
-  description: string;
+  mini_description: string;
   image?: string;
   inStock: boolean;
 }
@@ -665,7 +665,6 @@ export default function ProductsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryMap, setCategoryMap] = useState<Record<number, Category>>({});
 
-  // Загружаем категории и строим мапу id -> объект категории
   useEffect(() => {
     const fetchCategories = async () => {
       const { data, error } = await supabase.from("categories").select("*");
@@ -685,7 +684,6 @@ export default function ProductsPage() {
     fetchCategories();
   }, []);
 
-  // Загружаем продукты с категориями
   useEffect(() => {
     const fetchProducts = async () => {
       const { data: productCats, error: pcError } = await supabase
@@ -699,7 +697,7 @@ export default function ProductsPage() {
 
       const { data: productsData, error: prodError } = await supabase
         .from("products")
-        .select("*");
+        .select("id, name, price, quantity, status, mini_description");
 
       if (prodError) {
         console.error(prodError);
@@ -744,7 +742,7 @@ export default function ProductsPage() {
           status: p.status,
           inStock: p.quantity > 0 && p.status === "free",
           categories: allCategories,
-          description: "No description available",
+          mini_description: p.mini_description || "No description available",
           image: "/placeholder.svg",
         };
       });
@@ -798,6 +796,8 @@ export default function ProductsPage() {
       id: product.id,
       name: product.name,
       price: product.price,
+      quantity: 1,
+
       image: product.image || "/placeholder.svg",
     });
 
@@ -923,7 +923,7 @@ export default function ProductsPage() {
                   </h3>
                 </Link>
                 <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                  {product.description}
+                  {product.mini_description}
                 </p>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">

@@ -332,6 +332,8 @@ export type Database = {
           name: string;
           price: number;
           quantity: number;
+          description: string;
+          mini_description: string;
           status: string;
           seller_id: number | null;
         };

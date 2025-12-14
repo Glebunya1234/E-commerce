@@ -255,6 +255,7 @@ interface Product {
   originalPrice?: number;
   image: string;
   rating: number;
+  mini_description: string;
   reviews: number;
   categories: string[];
   isNew?: boolean;
@@ -276,7 +277,6 @@ export default function FeaturedProducts() {
   const { addToCart } = useCart();
   const { toast } = useToast();
 
-  // Загружаем категории и строим мапу
   useEffect(() => {
     const fetchCategories = async () => {
       const { data, error } = await supabase.from("categories").select("*");
@@ -293,10 +293,8 @@ export default function FeaturedProducts() {
     fetchCategories();
   }, []);
 
-  // Загружаем 4 случайных продукта с категориями
   useEffect(() => {
     const fetchProducts = async () => {
-      // Получаем все продукты
       const { data: productsData, error: prodError } = await supabase
         .from("products")
         .select("*");
@@ -306,7 +304,6 @@ export default function FeaturedProducts() {
         return;
       }
 
-      // Получаем все связи product_categories
       const { data: productCats, error: pcError } = await supabase
         .from("product_categories")
         .select("*");
@@ -316,7 +313,6 @@ export default function FeaturedProducts() {
         return;
       }
 
-      // Берем случайные 4 продукта
       const shuffled = [...productsData].sort(() => 0.5 - Math.random());
       const selectedProducts = shuffled.slice(0, 4);
 
@@ -345,6 +341,7 @@ export default function FeaturedProducts() {
             : undefined,
           image: p.image || "/placeholder.svg",
           rating: p.rating ? Number(p.rating) : 0,
+          mini_description: p.mini_description || "No description available",
           reviews: p.reviews ? Number(p.reviews) : 0,
           categories: parentCategories,
           isNew: p.is_new,
@@ -366,6 +363,7 @@ export default function FeaturedProducts() {
       name: product.name,
       price: product.price,
       image: product.image,
+      quantity: 1,
     });
     toast({
       title: "Added to cart!",
@@ -410,13 +408,6 @@ export default function FeaturedProducts() {
                         : "opacity-0"
                     }`}
                   >
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="w-10 h-10 p-0 rounded-full"
-                    >
-                      <Heart className="h-4 w-4" />
-                    </Button>
                     <Link href={`/products/${product.id}`}>
                       <Button
                         size="sm"
@@ -461,24 +452,9 @@ export default function FeaturedProducts() {
                   <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
                     {product.name}
                   </h3>
-
-                  <div className="flex items-center mb-3">
-                    <div className="flex items-center">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`h-4 w-4 ${
-                            i < Math.floor(product.rating)
-                              ? "text-yellow-400 fill-current"
-                              : "text-gray-300"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-sm text-gray-600 ml-2">
-                      ({product.reviews})
-                    </span>
-                  </div>
+                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                    {product.mini_description}
+                  </p>
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
