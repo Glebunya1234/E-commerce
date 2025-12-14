@@ -1,32 +1,47 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Star, ShoppingCart, Heart, Eye, Search, Grid, List, ArrowLeft } from "lucide-react"
-import Link from "next/link"
-import { useParams, useRouter } from "next/navigation"
-import { useCart } from "@/contexts/CartContext"
-import { useToast } from "@/hooks/use-toast"
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Star,
+  ShoppingCart,
+  Heart,
+  Eye,
+  Search,
+  Grid,
+  List,
+  ArrowLeft,
+} from "lucide-react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useCart } from "@/contexts/CartContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface Product {
-  id: string
-  name: string
-  price: number
-  originalPrice?: number
-  image: string
-  rating: number
-  reviews: number
-  category: string
-  description: string
-  isNew?: boolean
-  isSale?: boolean
-  inStock: boolean
+  id: string;
+  name: string;
+  price: number;
+  originalPrice?: number;
+  image: string;
+  rating: number;
+  reviews: number;
+  category: string;
+  description: string;
+  isNew?: boolean;
+  isSale?: boolean;
+  inStock: boolean;
 }
 
 const categoryData = {
@@ -175,76 +190,76 @@ const categoryData = {
       },
     ],
   },
-}
+};
 
 export default function CategoryPage() {
-  const params = useParams()
-  const router = useRouter()
-  const { addToCart } = useCart()
-  const { toast } = useToast()
+  const params = useParams();
+  const router = useRouter();
+  const { addToCart } = useCart();
+  const { toast } = useToast();
 
-  const categorySlug = params.category as string
-  const category = categoryData[categorySlug as keyof typeof categoryData]
+  const categorySlug = params.category as string;
+  const category = categoryData[categorySlug as keyof typeof categoryData];
 
-  const [products, setProducts] = useState<Product[]>([])
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
-  const [searchTerm, setSearchTerm] = useState("")
-  const [sortBy, setSortBy] = useState("featured")
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
-  const [hoveredProduct, setHoveredProduct] = useState<string | null>(null)
+  const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("featured");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
 
   useEffect(() => {
     if (category) {
-      setProducts(category.products)
-      setFilteredProducts(category.products)
+      setProducts(category.products);
+      setFilteredProducts(category.products);
     }
-  }, [category])
+  }, [category]);
 
   useEffect(() => {
-    let filtered = products
+    let filtered = products;
 
     // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter(
         (product) =>
           product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          product.description.toLowerCase().includes(searchTerm.toLowerCase()),
-      )
+          product.description.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
 
     // Sort products
     switch (sortBy) {
       case "price-low":
-        filtered.sort((a, b) => a.price - b.price)
-        break
+        filtered.sort((a, b) => a.price - b.price);
+        break;
       case "price-high":
-        filtered.sort((a, b) => b.price - a.price)
-        break
+        filtered.sort((a, b) => b.price - a.price);
+        break;
       case "rating":
-        filtered.sort((a, b) => b.rating - a.rating)
-        break
+        filtered.sort((a, b) => b.rating - a.rating);
+        break;
       case "newest":
-        filtered.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0))
-        break
+        filtered.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
+        break;
       default:
         // Keep original order for "featured"
-        break
+        break;
     }
 
-    setFilteredProducts(filtered)
-  }, [products, searchTerm, sortBy])
+    setFilteredProducts(filtered);
+  }, [products, searchTerm, sortBy]);
 
   const handleAddToCart = (product: Product, e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
+    e.preventDefault();
+    e.stopPropagation();
 
     if (!product.inStock) {
       toast({
         title: "Out of stock",
         description: "This product is currently out of stock.",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
     addToCart({
@@ -252,13 +267,12 @@ export default function CategoryPage() {
       name: product.name,
       price: product.price,
       image: product.image,
-      quantity: 1,
-    })
+    });
     toast({
       title: "Added to cart!",
       description: `${product.name} has been added to your cart.`,
-    })
-  }
+    });
+  };
 
   // If category doesn't exist, show coming soon page
   if (!category) {
@@ -267,7 +281,10 @@ export default function CategoryPage() {
         {/* Breadcrumb */}
         <div className="bg-white border-b">
           <div className="container mx-auto px-4 py-4">
-            <Link href="/categories" className="inline-flex items-center text-purple-600 hover:text-purple-700">
+            <Link
+              href="/categories"
+              className="inline-flex items-center text-purple-600 hover:text-purple-700"
+            >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Categories
             </Link>
@@ -286,13 +303,17 @@ export default function CategoryPage() {
             </h1>
 
             <p className="text-xl text-gray-600 mb-8">
-              We're working hard to bring you amazing products in this category. Stay tuned for exciting updates!
+              We're working hard to bring you amazing products in this category.
+              Stay tuned for exciting updates!
             </p>
 
             <div className="bg-white p-8 rounded-lg shadow-md mb-8">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">Coming Soon!</h2>
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+                Coming Soon!
+              </h2>
               <p className="text-gray-600 mb-6">
-                This category is currently under development. We're curating the best products just for you.
+                This category is currently under development. We're curating the
+                best products just for you.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -309,14 +330,17 @@ export default function CategoryPage() {
 
             <div className="text-sm text-gray-500">
               <p>Want to be notified when this category launches?</p>
-              <Link href="/contact" className="text-purple-600 hover:text-purple-700 underline">
+              <Link
+                href="/contact"
+                className="text-purple-600 hover:text-purple-700 underline"
+              >
                 Contact us to stay updated
               </Link>
             </div>
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -343,7 +367,9 @@ export default function CategoryPage() {
         <div className="absolute inset-0 bg-black/20"></div>
         <div className="relative container mx-auto px-4 h-full flex items-center">
           <div className="text-white">
-            <h1 className="text-4xl lg:text-5xl font-bold mb-4">{category.title}</h1>
+            <h1 className="text-4xl lg:text-5xl font-bold mb-4">
+              {category.title}
+            </h1>
             <p className="text-xl opacity-90">{category.description}</p>
           </div>
         </div>
@@ -407,14 +433,18 @@ export default function CategoryPage() {
         {/* Products Grid/List */}
         <div
           className={
-            viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" : "space-y-4"
+            viewMode === "grid"
+              ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+              : "space-y-4"
           }
         >
           {filteredProducts.map((product) => (
             <Card
               key={product.id}
               className={`group transition-all duration-300 hover:shadow-xl border-0 shadow-md ${
-                viewMode === "list" ? "flex flex-row overflow-hidden" : "hover:-translate-y-2"
+                viewMode === "list"
+                  ? "flex flex-row overflow-hidden"
+                  : "hover:-translate-y-2"
               }`}
               onMouseEnter={() => setHoveredProduct(product.id)}
               onMouseLeave={() => setHoveredProduct(null)}
@@ -433,9 +463,19 @@ export default function CategoryPage() {
 
                         {/* Badges */}
                         <div className="absolute top-4 left-4 flex flex-col gap-2">
-                          {product.isNew && <Badge className="bg-green-500 hover:bg-green-600">New</Badge>}
-                          {product.isSale && <Badge className="bg-red-500 hover:bg-red-600">Sale</Badge>}
-                          {!product.inStock && <Badge className="bg-gray-500">Out of Stock</Badge>}
+                          {product.isNew && (
+                            <Badge className="bg-green-500 hover:bg-green-600">
+                              New
+                            </Badge>
+                          )}
+                          {product.isSale && (
+                            <Badge className="bg-red-500 hover:bg-red-600">
+                              Sale
+                            </Badge>
+                          )}
+                          {!product.inStock && (
+                            <Badge className="bg-gray-500">Out of Stock</Badge>
+                          )}
                         </div>
 
                         {/* Quick Actions */}
@@ -445,8 +485,8 @@ export default function CategoryPage() {
                             variant="secondary"
                             className="w-10 h-10 p-0 rounded-full bg-white/90 hover:bg-white"
                             onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
+                              e.preventDefault();
+                              e.stopPropagation();
                             }}
                           >
                             <Heart className="h-4 w-4" />
@@ -470,7 +510,9 @@ export default function CategoryPage() {
                         </h3>
                       </Link>
 
-                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">{product.description}</p>
+                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                        {product.description}
+                      </p>
 
                       <div className="flex items-center mb-3">
                         <div className="flex items-center">
@@ -478,27 +520,41 @@ export default function CategoryPage() {
                             <Star
                               key={i}
                               className={`h-4 w-4 ${
-                                i < Math.floor(product.rating) ? "text-yellow-400 fill-current" : "text-gray-300"
+                                i < Math.floor(product.rating)
+                                  ? "text-yellow-400 fill-current"
+                                  : "text-gray-300"
                               }`}
                             />
                           ))}
                         </div>
-                        <span className="text-sm text-gray-600 ml-2">({product.reviews})</span>
+                        <span className="text-sm text-gray-600 ml-2">
+                          ({product.reviews})
+                        </span>
                       </div>
 
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
-                          <span className="text-xl font-bold text-gray-900">${product.price}</span>
+                          <span className="text-xl font-bold text-gray-900">
+                            ${product.price}
+                          </span>
                           {product.originalPrice && (
-                            <span className="text-sm text-gray-500 line-through">${product.originalPrice}</span>
+                            <span className="text-sm text-gray-500 line-through">
+                              ${product.originalPrice}
+                            </span>
                           )}
                         </div>
                       </div>
 
                       {/* Action Buttons */}
                       <div className="flex gap-2">
-                        <Link href={`/products/${product.id}`} className="flex-1">
-                          <Button variant="outline" className="w-full bg-transparent">
+                        <Link
+                          href={`/products/${product.id}`}
+                          className="flex-1"
+                        >
+                          <Button
+                            variant="outline"
+                            className="w-full bg-transparent"
+                          >
                             View Details
                           </Button>
                         </Link>
@@ -516,7 +572,10 @@ export default function CategoryPage() {
                 ) : (
                   // List View
                   <div className="flex w-full">
-                    <Link href={`/products/${product.id}`} className="w-48 h-48 flex-shrink-0">
+                    <Link
+                      href={`/products/${product.id}`}
+                      className="w-48 h-48 flex-shrink-0"
+                    >
                       <img
                         src={product.image || "/placeholder.svg"}
                         alt={product.name}
@@ -533,13 +592,21 @@ export default function CategoryPage() {
                           </Link>
                         </div>
                         <div className="flex gap-2">
-                          {product.isNew && <Badge className="bg-green-500">New</Badge>}
-                          {product.isSale && <Badge className="bg-red-500">Sale</Badge>}
-                          {!product.inStock && <Badge className="bg-gray-500">Out of Stock</Badge>}
+                          {product.isNew && (
+                            <Badge className="bg-green-500">New</Badge>
+                          )}
+                          {product.isSale && (
+                            <Badge className="bg-red-500">Sale</Badge>
+                          )}
+                          {!product.inStock && (
+                            <Badge className="bg-gray-500">Out of Stock</Badge>
+                          )}
                         </div>
                       </div>
 
-                      <p className="text-gray-600 mb-4">{product.description}</p>
+                      <p className="text-gray-600 mb-4">
+                        {product.description}
+                      </p>
 
                       <div className="flex items-center mb-4">
                         <div className="flex items-center">
@@ -547,19 +614,27 @@ export default function CategoryPage() {
                             <Star
                               key={i}
                               className={`h-4 w-4 ${
-                                i < Math.floor(product.rating) ? "text-yellow-400 fill-current" : "text-gray-300"
+                                i < Math.floor(product.rating)
+                                  ? "text-yellow-400 fill-current"
+                                  : "text-gray-300"
                               }`}
                             />
                           ))}
                         </div>
-                        <span className="text-sm text-gray-600 ml-2">({product.reviews} reviews)</span>
+                        <span className="text-sm text-gray-600 ml-2">
+                          ({product.reviews} reviews)
+                        </span>
                       </div>
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="text-2xl font-bold text-gray-900">${product.price}</span>
+                          <span className="text-2xl font-bold text-gray-900">
+                            ${product.price}
+                          </span>
                           {product.originalPrice && (
-                            <span className="text-lg text-gray-500 line-through">${product.originalPrice}</span>
+                            <span className="text-lg text-gray-500 line-through">
+                              ${product.originalPrice}
+                            </span>
                           )}
                         </div>
                         <div className="flex gap-2">
@@ -596,8 +671,12 @@ export default function CategoryPage() {
             <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <Search className="w-12 h-12 text-gray-400" />
             </div>
-            <h3 className="text-2xl font-semibold text-gray-900 mb-2">No products found</h3>
-            <p className="text-gray-600 mb-6">Try adjusting your search criteria</p>
+            <h3 className="text-2xl font-semibold text-gray-900 mb-2">
+              No products found
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Try adjusting your search criteria
+            </p>
             <Button
               onClick={() => setSearchTerm("")}
               className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
@@ -608,5 +687,5 @@ export default function CategoryPage() {
         )}
       </div>
     </div>
-  )
+  );
 }

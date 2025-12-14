@@ -1,90 +1,112 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, AlertCircle, CheckCircle, Info } from "lucide-react"
-import { useAuth } from "@/contexts/AuthContext"
-import { isDemoMode } from "@/lib/supabase"
+import type React from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  User,
+  ArrowLeft,
+  AlertCircle,
+  CheckCircle,
+  Info,
+} from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function RegisterPage() {
-  const [fullName, setFullName] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [error, setError] = useState("")
-  const [success, setSuccess] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const { signUp } = useAuth()
-  const router = useRouter()
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { signUp } = useAuth();
+  const router = useRouter();
 
   const validateForm = () => {
     if (!fullName.trim()) {
-      setError("Please enter your full name")
-      return false
+      setError("Please enter your full name");
+      return false;
     }
 
     if (!email.trim()) {
-      setError("Please enter your email address")
-      return false
+      setError("Please enter your email address");
+      return false;
     }
 
     if (!email.includes("@")) {
-      setError("Please enter a valid email address")
-      return false
+      setError("Please enter a valid email address");
+      return false;
     }
 
     if (!password.trim()) {
-      setError("Please enter a password")
-      return false
+      setError("Please enter a password");
+      return false;
     }
 
     if (password.length < 6) {
-      setError("Password must be at least 6 characters long")
-      return false
+      setError("Password must be at least 6 characters long");
+      return false;
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match")
-      return false
+      setError("Passwords do not match");
+      return false;
     }
 
-    return true
-  }
+    return true;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
+    e.preventDefault();
+    setError("");
 
     if (!validateForm()) {
-      return
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
 
-    const { error: signUpError, success: signUpSuccess } = await signUp(email, password, fullName)
-    setLoading(false)
+    const { error: signUpError, success: signUpSuccess } = await signUp(
+      email,
+      password,
+      fullName
+    );
+    setLoading(false);
 
     if (signUpError) {
-      setError(signUpError)
-      return
+      setError(signUpError);
+      return;
     }
 
     if (signUpSuccess) {
-      setSuccess(true)
+      setSuccess(true);
       setTimeout(() => {
-        router.push("/auth/login?message=Registration successful! Please sign in.")
-      }, 2000)
+        router.push(
+          "/auth/login?message=Registration successful! Please sign in."
+        );
+      }, 2000);
     }
-  }
+  };
 
   if (success) {
     return (
@@ -92,24 +114,29 @@ export default function RegisterPage() {
         <Card className="w-full max-w-md shadow-xl border-0">
           <CardContent className="text-center py-12">
             <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Registration Successful!</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Registration Successful!
+            </h2>
             <p className="text-gray-600 mb-4">
-              {isDemoMode
-                ? "You can now sign in with your credentials."
-                : "Please check your email to verify your account before signing in."}
+              You can now sign in with your credentials.
             </p>
-            <p className="text-sm text-gray-500">Redirecting to login page...</p>
+            <p className="text-sm text-gray-500">
+              Redirecting to login page...
+            </p>
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Back Button */}
-        <Link href="/" className="inline-flex items-center text-purple-600 hover:text-purple-700 mb-6">
+        <Link
+          href="/"
+          className="inline-flex items-center text-purple-600 hover:text-purple-700 mb-6"
+        >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Home
         </Link>
@@ -119,21 +146,13 @@ export default function RegisterPage() {
             <CardTitle className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
               Create Account
             </CardTitle>
-            <CardDescription className="text-gray-600">Join EliteStore and start your shopping journey</CardDescription>
+            <CardDescription className="text-gray-600">
+              Join EliteStore and start your shopping journey
+            </CardDescription>
           </CardHeader>
 
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-6">
-              {/* Demo Mode Notice */}
-              {isDemoMode && (
-                <Alert className="border-blue-200 bg-blue-50">
-                  <Info className="h-4 w-4 text-blue-600" />
-                  <AlertDescription className="text-blue-800">
-                    <strong>Demo Mode:</strong> Registration will create a demo account.
-                  </AlertDescription>
-                </Alert>
-              )}
-
               {error && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
@@ -204,7 +223,9 @@ export default function RegisterPage() {
                     )}
                   </Button>
                 </div>
-                <p className="text-xs text-gray-500">Password must be at least 6 characters</p>
+                <p className="text-xs text-gray-500">
+                  Password must be at least 6 characters
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -250,7 +271,10 @@ export default function RegisterPage() {
 
               <div className="text-center text-sm">
                 <span className="text-gray-600">Already have an account? </span>
-                <Link href="/auth/login" className="text-purple-600 hover:text-purple-700 font-medium">
+                <Link
+                  href="/auth/login"
+                  className="text-purple-600 hover:text-purple-700 font-medium"
+                >
                   Sign in
                 </Link>
               </div>
@@ -259,5 +283,5 @@ export default function RegisterPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

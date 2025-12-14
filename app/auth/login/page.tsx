@@ -1,61 +1,78 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Eye, EyeOff, Mail, Lock, ArrowLeft, AlertCircle, Info } from "lucide-react"
-import { useAuth } from "@/contexts/AuthContext"
-import { isDemoMode } from "@/lib/supabase"
+import type React from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  ArrowLeft,
+  AlertCircle,
+  Info,
+} from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
-  const { signIn } = useAuth()
-  const router = useRouter()
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { signIn } = useAuth();
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
+    e.preventDefault();
+    setError("");
 
     if (!email.trim()) {
-      setError("Please enter your email address")
-      return
+      setError("Please enter your email address");
+      return;
     }
 
     if (!password.trim()) {
-      setError("Please enter your password")
-      return
+      setError("Please enter your password");
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
 
-    const { error: signInError, success } = await signIn(email, password)
-    setLoading(false)
+    const { error: signInError, success } = await signIn(email, password);
+    setLoading(false);
 
     if (signInError) {
-      setError(signInError)
-      return
+      setError(signInError);
+      return;
     }
 
     if (success) {
-      router.push("/")
+      router.push("/");
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Back Button */}
-        <Link href="/" className="inline-flex items-center text-purple-600 hover:text-purple-700 mb-6">
+        <Link
+          href="/"
+          className="inline-flex items-center text-purple-600 hover:text-purple-700 mb-6"
+        >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Home
         </Link>
@@ -65,21 +82,13 @@ export default function LoginPage() {
             <CardTitle className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
               Welcome Back
             </CardTitle>
-            <CardDescription className="text-gray-600">Sign in to your EliteStore account</CardDescription>
+            <CardDescription className="text-gray-600">
+              Sign in to your EliteStore account
+            </CardDescription>
           </CardHeader>
 
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-6">
-              {/* Demo Mode Notice */}
-              {isDemoMode && (
-                <Alert className="border-blue-200 bg-blue-50">
-                  <Info className="h-4 w-4 text-blue-600" />
-                  <AlertDescription className="text-blue-800">
-                    <strong>Demo Mode:</strong> Use user@example.com / password123 or admin@elitestore.com / admin123
-                  </AlertDescription>
-                </Alert>
-              )}
-
               {error && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
@@ -137,7 +146,10 @@ export default function LoginPage() {
 
               <div className="flex items-center justify-between">
                 <div className="text-sm">
-                  <Link href="/auth/forgot-password" className="text-purple-600 hover:text-purple-700">
+                  <Link
+                    href="/auth/forgot-password"
+                    className="text-purple-600 hover:text-purple-700"
+                  >
                     Forgot your password?
                   </Link>
                 </div>
@@ -155,7 +167,10 @@ export default function LoginPage() {
 
               <div className="text-center text-sm">
                 <span className="text-gray-600">Don't have an account? </span>
-                <Link href="/auth/register" className="text-purple-600 hover:text-purple-700 font-medium">
+                <Link
+                  href="/auth/register"
+                  className="text-purple-600 hover:text-purple-700 font-medium"
+                >
                   Sign up
                 </Link>
               </div>
@@ -164,5 +179,5 @@ export default function LoginPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }
