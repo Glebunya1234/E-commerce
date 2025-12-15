@@ -550,7 +550,7 @@ export default function AdminPage() {
                 <p className="text-sm font-medium text-gray-600">
                   Total Tables
                 </p>
-                <p className="text-2xl font-bold text-gray-900">6</p>
+                <p className="text-2xl font-bold text-gray-900">8</p>
               </div>
               <Database className="h-8 w-8 text-orange-600" />
             </div>

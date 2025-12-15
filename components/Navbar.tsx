@@ -12,7 +12,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import {
   ShoppingCart,
   User,
@@ -109,21 +115,7 @@ export default function Navbar() {
               Products
             </Link>
           </div>
-          {/* Search Bar
-          <div className="hidden md:flex flex-1 max-w-lg mx-8">
-            <form onSubmit={handleSearch} className="w-full">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  type="text"
-                  placeholder="Search products..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-4 w-full"
-                />
-              </div>
-            </form>
-          </div> */}
+
           {/* Right Side Icons */}
           <div className="flex items-center space-x-4">
             {/* Cart */}
@@ -153,9 +145,6 @@ export default function Navbar() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  {/* <DropdownMenuItem>
-                    <Link href="/profile">Profile</Link>
-                  </DropdownMenuItem> */}
                   <DropdownMenuItem>
                     <Link href="/orders">Orders</Link>
                   </DropdownMenuItem>
@@ -199,21 +188,10 @@ export default function Navbar() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                <SheetHeader>
+                  <SheetTitle>Menu</SheetTitle>
+                </SheetHeader>
                 <div className="flex flex-col space-y-4 mt-4">
-                  {/* Mobile Search */}
-                  <form onSubmit={handleSearch}>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                      <Input
-                        type="text"
-                        placeholder="Search products..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10 pr-4 w-full"
-                      />
-                    </div>
-                  </form>
-
                   {/* Mobile Navigation Links */}
                   <div className="flex flex-col space-y-2">
                     <Link
@@ -223,13 +201,21 @@ export default function Navbar() {
                     >
                       Home
                     </Link>
-                    <Link
-                      href="/categories"
-                      className="text-gray-700 hover:text-purple-600 py-2"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      Categories
-                    </Link>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger className="flex items-center text-gray-700 hover:text-purple-600 transition-colors">
+                        Categories
+                        <ChevronDown className="ml-1 h-4 w-4" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        {categories.map((category) => (
+                          <DropdownMenuItem key={category.id}>
+                            <Link href={`/categories/${category.name}`}>
+                              {category.name}
+                            </Link>
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     <Link
                       href="/products"
                       className="text-gray-700 hover:text-purple-600 py-2"
@@ -237,32 +223,11 @@ export default function Navbar() {
                     >
                       Products
                     </Link>
-                    <Link
-                      href="/about"
-                      className="text-gray-700 hover:text-purple-600 py-2"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      About
-                    </Link>
-                    <Link
-                      href="/contact"
-                      className="text-gray-700 hover:text-purple-600 py-2"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      Contact
-                    </Link>
                   </div>
 
                   {/* Mobile User Menu */}
                   {user ? (
                     <div className="flex flex-col space-y-2 pt-4 border-t">
-                      <Link
-                        href="/profile"
-                        className="text-gray-700 hover:text-purple-600 py-2"
-                        onClick={() => setIsOpen(false)}
-                      >
-                        Profile
-                      </Link>
                       <Link
                         href="/orders"
                         className="text-gray-700 hover:text-purple-600 py-2"
@@ -270,15 +235,7 @@ export default function Navbar() {
                       >
                         Orders
                       </Link>
-                      {user.role === "admin" && (
-                        <Link
-                          href="/admin"
-                          className="text-gray-700 hover:text-purple-600 py-2"
-                          onClick={() => setIsOpen(false)}
-                        >
-                          Admin Panel
-                        </Link>
-                      )}
+
                       <Button
                         variant="ghost"
                         onClick={handleLogout}
