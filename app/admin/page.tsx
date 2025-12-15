@@ -100,6 +100,31 @@ interface ProductAttribute {
   value: string;
 }
 
+interface Order {
+  id: number;
+  seller_id?: number;
+  date_created: string;
+  total_amount: number;
+  customer_id?: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  address?: string;
+  city?: string;
+  postal_code?: string;
+  country?: string;
+  sellers?: { full_name: string } | null;
+}
+
+interface OrderItem {
+  id: number;
+  order_id: number;
+  product_id: number;
+  quantity: number;
+  price_at_moment: number;
+  products?: { name: string } | null;
+}
+
 export default function AdminPage() {
   const { user } = useAuth();
   const router = useRouter();
@@ -123,6 +148,8 @@ export default function AdminPage() {
   const [productAttributes, setProductAttributes] = useState<
     ProductAttribute[]
   >([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
 
   // Modal states
   const [showModal, setShowModal] = useState(false);
@@ -146,6 +173,8 @@ export default function AdminPage() {
         fetchAttributes(),
         fetchProductCategories(),
         fetchProductAttributes(),
+        fetchOrders(),
+        fetchOrderItems(),
         fetchStats(),
       ]);
     } catch (error) {
@@ -239,6 +268,32 @@ export default function AdminPage() {
       .select("*")
       .order("id");
     if (!error && data) setProductAttributes(data);
+  };
+
+  const fetchOrders = async () => {
+    const { data, error } = await supabase
+      .from("orders")
+      .select(
+        `
+        *,
+        sellers(full_name)
+      `
+      )
+      .order("id", { ascending: false });
+    if (!error && data) setOrders(data);
+  };
+
+  const fetchOrderItems = async () => {
+    const { data, error } = await supabase
+      .from("order_items")
+      .select(
+        `
+        *,
+        products(name)
+      `
+      )
+      .order("id", { ascending: false });
+    if (!error && data) setOrderItems(data);
   };
 
   const getStatusColor = (status: string) => {
@@ -506,13 +561,15 @@ export default function AdminPage() {
 
       {/* Main Content */}
       <Tabs defaultValue="products" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="products">Products</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
           <TabsTrigger value="sellers">Sellers</TabsTrigger>
           <TabsTrigger value="attributes">Attributes</TabsTrigger>
           <TabsTrigger value="product_categories">Prod-Cat</TabsTrigger>
           <TabsTrigger value="product_attributes">Prod-Attr</TabsTrigger>
+          <TabsTrigger value="orders">Orders</TabsTrigger>
+          <TabsTrigger value="order_items">Order Items</TabsTrigger>
         </TabsList>
 
         {/* Products Tab */}
@@ -852,6 +909,169 @@ export default function AdminPage() {
                             onClick={() =>
                               handleDelete("product_attributes", pa.id)
                             }
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Orders Tab (Read-only, Delete only) */}
+        <TabsContent value="orders">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Orders (Read Only)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID</TableHead>
+                      <TableHead>Seller</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Total Amount</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>City</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {orders.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell>{order.id}</TableCell>
+                        <TableCell>
+                          {order.sellers?.full_name || "N/A"}
+                        </TableCell>
+                        <TableCell>
+                          {new Date(order.date_created).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          ${Number(order.total_amount).toFixed(2)}
+                        </TableCell>
+                        <TableCell>
+                          {order.first_name && order.last_name
+                            ? `${order.first_name} ${order.last_name}`
+                            : "N/A"}
+                        </TableCell>
+                        <TableCell>{order.email || "N/A"}</TableCell>
+                        <TableCell>{order.city || "N/A"}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600"
+                              onClick={() => {
+                                if (
+                                  confirm(
+                                    "Are you sure you want to delete this order?"
+                                  )
+                                ) {
+                                  supabase
+                                    .from("orders")
+                                    .delete()
+                                    .eq("id", order.id)
+                                    .then(({ error }) => {
+                                      if (error) {
+                                        toast({
+                                          title: "Error deleting order",
+                                          description: error.message,
+                                          variant: "destructive",
+                                        });
+                                      } else {
+                                        toast({
+                                          title: "Order deleted successfully",
+                                        });
+                                        fetchOrders();
+                                      }
+                                    });
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Order Items Tab (Read-only, Delete only) */}
+        <TabsContent value="order_items">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Order Items (Read Only)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Order ID</TableHead>
+                    <TableHead>Product</TableHead>
+                    <TableHead>Quantity</TableHead>
+                    <TableHead>Price at Moment</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {orderItems.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell>{item.id}</TableCell>
+                      <TableCell>{item.order_id}</TableCell>
+                      <TableCell className="font-medium">
+                        {item.products?.name || `ID: ${item.product_id}`}
+                      </TableCell>
+                      <TableCell>{item.quantity}</TableCell>
+                      <TableCell>
+                        ${Number(item.price_at_moment).toFixed(2)}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600"
+                            onClick={() => {
+                              if (
+                                confirm(
+                                  "Are you sure you want to delete this order item?"
+                                )
+                              ) {
+                                supabase
+                                  .from("order_items")
+                                  .delete()
+                                  .eq("id", item.id)
+                                  .then(({ error }) => {
+                                    if (error) {
+                                      toast({
+                                        title: "Error deleting order item",
+                                        description: error.message,
+                                        variant: "destructive",
+                                      });
+                                    } else {
+                                      toast({
+                                        title:
+                                          "Order item deleted successfully",
+                                      });
+                                      fetchOrderItems();
+                                    }
+                                  });
+                              }
+                            }}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

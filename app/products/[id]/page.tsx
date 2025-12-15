@@ -430,17 +430,6 @@ export default function ProductDetailPage() {
 
                 <Button
                   variant="outline"
-                  onClick={() => setIsWishlisted(!isWishlisted)}
-                  className={`h-12 w-12 p-0 ${
-                    isWishlisted ? "text-red-500 border-red-500" : ""
-                  }`}
-                >
-                  <Heart
-                    className={`h-5 w-5 ${isWishlisted ? "fill-current" : ""}`}
-                  />
-                </Button>
-                <Button
-                  variant="outline"
                   onClick={handleShare}
                   className="h-12 w-12 p-0 bg-transparent"
                 >
