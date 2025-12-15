@@ -9,6 +9,7 @@ interface CartItem {
   price: number;
   quantity: number;
   image: string;
+  seller_id: number;
   variant?: string;
 }
 
@@ -86,7 +87,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const value = {
     items,
     addItem,
-    addToCart: addItem, // Alias for backward compatibility
+    addToCart: addItem,
     removeItem,
     updateQuantity,
     clearCart,

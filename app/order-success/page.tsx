@@ -1,16 +1,32 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { CheckCircle, Package, Truck, MapPin, Clock } from "lucide-react"
-import Link from "next/link"
-import { useSearchParams } from "next/navigation"
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { CheckCircle, Package, Truck, MapPin, Clock } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useLastOrder } from "@/contexts/LastOrderContext";
 
 export default function OrderSuccessPage() {
-  const searchParams = useSearchParams()
-  const orderId = searchParams.get("orderId") || "ORD-123456789"
+  const { lastOrder } = useLastOrder();
+
+  // 🔒 защита от прямого захода
+  if (!lastOrder) {
+    return (
+      <div className="container mx-auto px-4 py-16 text-center">
+        <h1 className="text-2xl font-bold mb-4">Order not found</h1>
+        <p className="text-gray-600 mb-6">
+          This page is available only after placing an order.
+        </p>
+        <Link href="/products">
+          <Button>Go to shop</Button>
+        </Link>
+      </div>
+    );
+  }
+
   const [trackingSteps, setTrackingSteps] = useState([
     {
       id: 1,
@@ -19,87 +35,159 @@ export default function OrderSuccessPage() {
       completed: true,
       date: new Date().toLocaleDateString(),
     },
-    { id: 2, title: "Processing", description: "We are preparing your items", completed: false, date: "" },
-    { id: 3, title: "Shipped", description: "Your order is on the way", completed: false, date: "" },
-    { id: 4, title: "Delivered", description: "Package delivered successfully", completed: false, date: "" },
-  ])
+    {
+      id: 2,
+      title: "Processing",
+      description: "We are preparing your items",
+      completed: false,
+      date: "",
+    },
+    {
+      id: 3,
+      title: "Shipped",
+      description: "Your order is on the way",
+      completed: false,
+      date: "",
+    },
+    {
+      id: 4,
+      title: "Delivered",
+      description: "Package delivered successfully",
+      completed: false,
+      date: "",
+    },
+  ]);
 
   useEffect(() => {
-    // Simulate order processing
     const timer1 = setTimeout(() => {
       setTrackingSteps((prev) =>
         prev.map((step) =>
-          step.id === 2 ? { ...step, completed: true, date: new Date().toLocaleDateString() } : step,
-        ),
-      )
-    }, 3000)
+          step.id === 2
+            ? {
+                ...step,
+                completed: true,
+                date: new Date().toLocaleDateString(),
+              }
+            : step
+        )
+      );
+    }, 3000);
 
     const timer2 = setTimeout(() => {
       setTrackingSteps((prev) =>
         prev.map((step) =>
           step.id === 3
-            ? { ...step, completed: true, date: new Date(Date.now() + 86400000).toLocaleDateString() }
-            : step,
-        ),
-      )
-    }, 6000)
+            ? {
+                ...step,
+                completed: true,
+                date: new Date(Date.now() + 86400000).toLocaleDateString(),
+              }
+            : step
+        )
+      );
+    }, 6000);
 
     return () => {
-      clearTimeout(timer1)
-      clearTimeout(timer2)
-    }
-  }, [])
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, []);
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-3xl mx-auto">
-        {/* Success Header */}
+        {/* ✅ Success header */}
         <div className="text-center mb-8">
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Order Placed Successfully!</h1>
-          <p className="text-gray-600">Thank you for your purchase. Your order is being processed.</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Order Placed Successfully!
+          </h1>
+          <p className="text-gray-600">
+            Thank you for your purchase. Your order is being processed.
+          </p>
         </div>
 
-        {/* Order Details */}
+        {/* 📦 Order details */}
         <Card className="mb-8">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Order Details</span>
-              <Badge variant="secondary" className="bg-green-100 text-green-800">
-                Confirmed
-              </Badge>
+              <Badge className="bg-green-100 text-green-800">Confirmed</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <p className="text-sm text-gray-600">Order Number</p>
-                <p className="font-semibold">{orderId}</p>
+                <p className="font-semibold">#{lastOrder.orderId}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Order Date</p>
-                <p className="font-semibold">{new Date().toLocaleDateString()}</p>
+                <p className="font-semibold">
+                  {new Date().toLocaleDateString()}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Estimated Delivery</p>
-                <p className="font-semibold">{new Date(Date.now() + 5 * 86400000).toLocaleDateString()}</p>
+                <p className="font-semibold">
+                  {new Date(Date.now() + 5 * 86400000).toLocaleDateString()}
+                </p>
               </div>
             </div>
 
             <div className="pt-4 border-t">
               <p className="text-sm text-gray-600 mb-2">Shipping Address</p>
               <div className="text-sm">
-                <p>John Doe</p>
-                <p>123 Main Street</p>
-                <p>New York, NY 10001</p>
+                <p>
+                  {lastOrder.firstName} {lastOrder.lastName}
+                </p>
+                <p>{lastOrder.address}</p>
+                <p>
+                  {lastOrder.city}, {lastOrder.postalCode}
+                </p>
+                <p>{lastOrder.country}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Order Tracking */}
+        {/* 🛒 Ordered items */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Ordered Items</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {lastOrder.items.map((item) => (
+              <div key={item.id} className="flex justify-between items-center">
+                <div className="flex items-center space-x-3">
+                  <img
+                    src={item.image || "/placeholder.svg"}
+                    alt={item.name}
+                    className="w-12 h-12 rounded object-cover"
+                  />
+                  <div>
+                    <p className="font-medium">{item.name}</p>
+                    <p className="text-sm text-gray-600">
+                      Qty: {item.quantity}
+                    </p>
+                  </div>
+                </div>
+                <p className="font-medium">
+                  ${(item.price * item.quantity).toFixed(2)}
+                </p>
+              </div>
+            ))}
+
+            <div className="flex justify-between font-semibold text-lg pt-4 border-t">
+              <span>Total</span>
+              <span>${lastOrder.total.toFixed(2)}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 🚚 Order tracking */}
         <Card className="mb-8">
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -107,107 +195,97 @@ export default function OrderSuccessPage() {
               Order Tracking
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              {trackingSteps.map((step, index) => (
-                <div key={step.id} className="flex items-start space-x-4">
-                  <div
-                    className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                      step.completed ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500"
-                    }`}
-                  >
-                    {step.completed ? (
-                      <CheckCircle className="w-4 h-4" />
-                    ) : (
-                      <div className="w-2 h-2 bg-current rounded-full" />
-                    )}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <h3 className={`text-sm font-medium ${step.completed ? "text-gray-900" : "text-gray-500"}`}>
-                        {step.title}
-                      </h3>
-                      {step.date && <span className="text-xs text-gray-500">{step.date}</span>}
-                    </div>
-                    <p className={`text-sm ${step.completed ? "text-gray-600" : "text-gray-400"}`}>
-                      {step.description}
-                    </p>
-                  </div>
-
-                  {index < trackingSteps.length - 1 && (
-                    <div
-                      className={`absolute left-4 mt-8 w-px h-6 ${step.completed ? "bg-green-500" : "bg-gray-200"}`}
-                      style={{ marginLeft: "15px" }}
-                    />
+          <CardContent className="space-y-6">
+            {trackingSteps.map((step, index) => (
+              <div
+                key={step.id}
+                className="flex items-start space-x-4 relative"
+              >
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    step.completed
+                      ? "bg-green-500 text-white"
+                      : "bg-gray-200 text-gray-500"
+                  }`}
+                >
+                  {step.completed ? (
+                    <CheckCircle className="w-4 h-4" />
+                  ) : (
+                    <div className="w-2 h-2 bg-current rounded-full" />
                   )}
                 </div>
-              ))}
-            </div>
+
+                <div className="flex-1">
+                  <div className="flex justify-between">
+                    <p
+                      className={`font-medium ${
+                        step.completed ? "text-gray-900" : "text-gray-500"
+                      }`}
+                    >
+                      {step.title}
+                    </p>
+                    {step.date && (
+                      <span className="text-xs text-gray-500">{step.date}</span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-600">{step.description}</p>
+                </div>
+
+                {index < trackingSteps.length - 1 && (
+                  <div
+                    className={`absolute left-4 top-10 h-6 w-px ${
+                      step.completed ? "bg-green-500" : "bg-gray-200"
+                    }`}
+                  />
+                )}
+              </div>
+            ))}
           </CardContent>
         </Card>
 
-        {/* Next Steps */}
+        {/* 🔜 Next steps */}
         <Card>
           <CardHeader>
             <CardTitle>What's Next?</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-start space-x-3">
-                <Clock className="w-5 h-5 text-blue-600 mt-0.5" />
-                <div>
-                  <h3 className="font-medium">Order Confirmation</h3>
-                  <p className="text-sm text-gray-600">
-                    You'll receive an email confirmation shortly with your order details.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-3">
-                <Truck className="w-5 h-5 text-green-600 mt-0.5" />
-                <div>
-                  <h3 className="font-medium">Shipping Updates</h3>
-                  <p className="text-sm text-gray-600">We'll send you tracking information once your order ships.</p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-3">
-                <MapPin className="w-5 h-5 text-purple-600 mt-0.5" />
-                <div>
-                  <h3 className="font-medium">Track Your Order</h3>
-                  <p className="text-sm text-gray-600">Use your order number to track the delivery status anytime.</p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-3">
-                <Package className="w-5 h-5 text-orange-600 mt-0.5" />
-                <div>
-                  <h3 className="font-medium">Delivery</h3>
-                  <p className="text-sm text-gray-600">Your package will be delivered within 3-5 business days.</p>
-                </div>
-              </div>
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex gap-3">
+              <Clock className="text-blue-600" />
+              <p className="text-sm">
+                You’ll receive an email confirmation shortly.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Truck className="text-green-600" />
+              <p className="text-sm">
+                Tracking info will be sent when shipped.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <MapPin className="text-purple-600" />
+              <p className="text-sm">
+                Track your order anytime using your order number.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Package className="text-orange-600" />
+              <p className="text-sm">Delivery in 3–5 business days.</p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Action Buttons */}
+        {/* 🔘 Actions */}
         <div className="flex flex-col sm:flex-row gap-4 mt-8 justify-center">
           <Link href="/products">
-            <Button variant="outline" size="lg" className="w-full sm:w-auto bg-transparent">
+            <Button variant="outline" size="lg">
               Continue Shopping
             </Button>
           </Link>
           <Link href="/orders">
-            <Button
-              size="lg"
-              className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-            >
-              View All Orders
-            </Button>
+            <Button size="lg">View All Orders</Button>
           </Link>
         </div>
       </div>
     </div>
-  )
+  );
 }

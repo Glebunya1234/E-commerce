@@ -14,7 +14,8 @@ interface Product {
   name: string;
   price: number;
   image: string;
-  miniDescription: string; // новое поле
+  miniDescription: string;
+  seller_id?: number | null;
 }
 
 interface RelatedProductsProps {
@@ -69,7 +70,7 @@ export default function RelatedProducts({
       // Получаем продукты с мини-описанием
       const { data: productsData, error: productsErr } = await supabase
         .from("products")
-        .select("id, name, price, mini_description")
+        .select("id, name, price, seller_id, mini_description")
         .in("id", productIds);
 
       if (productsErr) {
@@ -97,6 +98,7 @@ export default function RelatedProducts({
       name: product.name,
       price: product.price,
       image: product.image,
+      seller_id: product.seller_id || 0,
       quantity: 1,
     });
     toast({

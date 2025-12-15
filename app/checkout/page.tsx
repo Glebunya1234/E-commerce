@@ -1,25 +1,30 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { useCart } from "@/contexts/CartContext"
-import { useAuth } from "@/contexts/AuthContext"
-import { useRouter } from "next/navigation"
-import { useToast } from "@/hooks/use-toast"
-import Link from "next/link"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { useCart } from "@/contexts/CartContext";
+import { useLastOrder } from "@/contexts/LastOrderContext";
+
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
+import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 
 export default function CheckoutPage() {
-  const { items, total, clearCart } = useCart()
-  const { user } = useAuth()
-  const router = useRouter()
-  const { toast } = useToast()
-  const [isProcessing, setIsProcessing] = useState(false)
+  const { items, total, clearCart } = useCart();
+  const { setLastOrder } = useLastOrder();
+
+  const { user } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+  const [isProcessing, setIsProcessing] = useState(false);
   const [formData, setFormData] = useState({
     email: user?.email || "",
     firstName: "",
@@ -32,41 +37,136 @@ export default function CheckoutPage() {
     expiryDate: "",
     cvv: "",
     nameOnCard: "",
-  })
+  });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsProcessing(true)
+    e.preventDefault();
+    setIsProcessing(true);
 
-    // Simulate payment processing
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    if (!user) {
+      toast({
+        title: "Not authorized",
+        description: "Please log in to complete your order",
+        variant: "destructive",
+      });
+      setIsProcessing(false);
+      return;
+    }
 
-    // Clear cart and redirect to success page
-    clearCart()
-    toast({
-      title: "Order placed successfully!",
-      description: "Thank you for your purchase. You will receive a confirmation email shortly.",
-    })
-    router.push("/order-success")
-  }
+    try {
+      const itemsBySeller: Record<number, typeof items> = {};
+
+      items.forEach((item) => {
+        if (!itemsBySeller[item.seller_id]) {
+          itemsBySeller[item.seller_id] = [];
+        }
+        itemsBySeller[item.seller_id].push(item);
+      });
+
+      let lastOrderId: number | null = null;
+
+      for (const sellerIdStr in itemsBySeller) {
+        const sellerId = Number(sellerIdStr);
+        const sellerItems = itemsBySeller[sellerId];
+
+        const totalAmount = sellerItems.reduce(
+          (sum, item) => sum + item.price * item.quantity,
+          0
+        );
+
+        const { data: order, error: orderError } = await supabase
+          .from("orders")
+          .insert({
+            seller_id: sellerId,
+            total_amount: totalAmount,
+            customer_id: user.id,
+            email: formData.email,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            address: formData.address,
+            city: formData.city,
+            postal_code: formData.postalCode,
+            country: formData.country,
+          })
+          .select()
+          .single();
+
+        if (orderError) throw orderError;
+
+        lastOrderId = order.id;
+
+        const orderItems = sellerItems.map((item) => ({
+          order_id: order.id,
+          product_id: item.id,
+          quantity: item.quantity,
+          price_at_moment: item.price,
+        }));
+
+        const { error: itemsError } = await supabase
+          .from("order_items")
+          .insert(orderItems);
+
+        if (itemsError) throw itemsError;
+      }
+
+      setLastOrder({
+        orderId: lastOrderId,
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        address: formData.address,
+        city: formData.city,
+        postalCode: formData.postalCode,
+        country: formData.country,
+        items: items.map((item) => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image,
+        })),
+        total,
+      });
+
+      clearCart();
+
+      toast({
+        title: "Order placed successfully!",
+        description: "Thank you for your purchase 🎉",
+      });
+
+      router.push(`/order-success?orderId=${lastOrderId}`);
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Checkout error",
+        description: "Something went wrong while creating your order",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   if (items.length === 0) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Your cart is empty</h1>
-          <p className="text-gray-600 mb-6">Add some items to your cart before checking out.</p>
+          <p className="text-gray-600 mb-6">
+            Add some items to your cart before checking out.
+          </p>
           <Link href="/products">
             <Button>Continue Shopping</Button>
           </Link>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -124,12 +224,24 @@ export default function CheckoutPage() {
               </div>
               <div>
                 <Label htmlFor="address">Address</Label>
-                <Input id="address" name="address" value={formData.address} onChange={handleInputChange} required />
+                <Input
+                  id="address"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleInputChange}
+                  required
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="city">City</Label>
-                  <Input id="city" name="city" value={formData.city} onChange={handleInputChange} required />
+                  <Input
+                    id="city"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleInputChange}
+                    required
+                  />
                 </div>
                 <div>
                   <Label htmlFor="postalCode">Postal Code</Label>
@@ -144,7 +256,13 @@ export default function CheckoutPage() {
               </div>
               <div>
                 <Label htmlFor="country">Country</Label>
-                <Input id="country" name="country" value={formData.country} onChange={handleInputChange} required />
+                <Input
+                  id="country"
+                  name="country"
+                  value={formData.country}
+                  onChange={handleInputChange}
+                  required
+                />
               </div>
             </CardContent>
           </Card>
@@ -211,7 +329,10 @@ export default function CheckoutPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {items.map((item) => (
-                <div key={item.id} className="flex justify-between items-center">
+                <div
+                  key={item.id}
+                  className="flex justify-between items-center"
+                >
                   <div className="flex items-center space-x-3">
                     <img
                       src={item.image || "/placeholder.svg"}
@@ -220,10 +341,14 @@ export default function CheckoutPage() {
                     />
                     <div>
                       <p className="font-medium">{item.name}</p>
-                      <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
+                      <p className="text-sm text-gray-600">
+                        Qty: {item.quantity}
+                      </p>
                     </div>
                   </div>
-                  <p className="font-medium">${(item.price * item.quantity).toFixed(2)}</p>
+                  <p className="font-medium">
+                    ${(item.price * item.quantity).toFixed(2)}
+                  </p>
                 </div>
               ))}
               <Separator />
@@ -260,5 +385,5 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

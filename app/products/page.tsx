@@ -24,6 +24,7 @@ interface Product {
   quantity: number;
   status: string;
   categories: string[];
+  seller_id: number | null;
   mini_description: string;
   image?: string;
   inStock: boolean;
@@ -80,7 +81,9 @@ export default function ProductsPage() {
 
       const { data: productsData, error: prodError } = await supabase
         .from("products")
-        .select("id, name, price, quantity, status, mini_description");
+        .select(
+          "id, name, price, quantity, status, seller_id, mini_description"
+        );
 
       if (prodError) {
         console.error(prodError);
@@ -127,6 +130,7 @@ export default function ProductsPage() {
           categories: allCategories,
           mini_description: p.mini_description || "No description available",
           image: "/placeholder.svg",
+          seller_id: p.seller_id || null,
         };
       });
 
@@ -180,7 +184,7 @@ export default function ProductsPage() {
       name: product.name,
       price: product.price,
       quantity: 1,
-
+      seller_id: product.seller_id || 0,
       image: product.image || "/placeholder.svg",
     });
 

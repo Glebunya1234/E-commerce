@@ -49,6 +49,7 @@ interface Product {
   inStock: boolean;
   stockCount: number;
   isNew?: boolean;
+
   isSale?: boolean;
   tags: string[];
   variants?: {
@@ -56,6 +57,7 @@ interface Product {
     size?: string[];
   };
   seller?: {
+    id: number | null;
     full_name: string;
     phone: string;
     address: string;
@@ -89,21 +91,20 @@ export default function ProductDetailPage() {
         return;
       }
 
-      // 1. Получаем продукт с продавцом
       const { data: productData, error: productError } = await supabase
         .from("products")
         .select(
           `
-        id, 
-        name, 
-        price, 
-        quantity, 
-        status, 
-        description, 
-        mini_description,
-        seller_id,
-        customers!products_seller_id_fkey (full_name, phone, address)
-      `
+    id, 
+    name, 
+    price, 
+    quantity, 
+    status, 
+    description, 
+    mini_description,
+    seller_id,
+    sellers!products_seller_id_fkey (id, full_name, phone, address)
+  `
         )
         .eq("id", productId)
         .single();
@@ -138,9 +139,8 @@ export default function ProductDetailPage() {
 
       const categoryIds = productCategories?.map((c) => c.category_id) || [];
 
-      // 4. Получаем родительские категории
       let parentCats: { id: number; name: string }[] = [];
-      let parentCategoryId = 0; // <- добавляем переменную для RelatedProducts
+      let parentCategoryId = 0;
 
       for (const catId of categoryIds) {
         const { data: categoryData } = await supabase
@@ -151,11 +151,9 @@ export default function ProductDetailPage() {
 
         if (categoryData) {
           if (!categoryData.parent_id) {
-            // родительская категория
             parentCats.push({ id: categoryData.id, name: categoryData.name });
-            parentCategoryId = categoryData.id; // <- берем id родителя
+            parentCategoryId = categoryData.id;
           } else {
-            // получаем родителя
             const { data: parentData } = await supabase
               .from("categories")
               .select("id, name")
@@ -163,7 +161,7 @@ export default function ProductDetailPage() {
               .single();
             if (parentData) {
               parentCats.push({ id: parentData.id, name: parentData.name });
-              parentCategoryId = parentData.id; // <- берем id родителя
+              parentCategoryId = parentData.id;
             }
           }
         }
@@ -181,7 +179,7 @@ export default function ProductDetailPage() {
         reviewCount: 0,
         category: "—",
         parentCategoryId: parentCategoryId,
-        brand: productData.customers?.full_name || "Unknown seller",
+        brand: productData.sellers?.full_name || "Unknown seller",
         description: productData.description || "",
         miniDescription: productData.mini_description || "",
         features: [],
@@ -189,11 +187,12 @@ export default function ProductDetailPage() {
         inStock: productData.quantity > 0 && productData.status === "free",
         stockCount: productData.quantity,
         tags: [],
-        seller: productData.customers
+        seller: productData.sellers
           ? {
-              full_name: productData.customers.full_name,
-              phone: productData.customers.phone,
-              address: productData.customers.address,
+              id: productData.seller_id,
+              full_name: productData.sellers.full_name,
+              phone: productData.sellers.phone,
+              address: productData.sellers.address,
             }
           : undefined,
       });
@@ -223,6 +222,7 @@ export default function ProductDetailPage() {
       price: product.price,
       image: product.images[0],
       quantity: quantity,
+      seller_id: product.seller?.id || 1,
       variant: selectedVariants.color,
     });
 

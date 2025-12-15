@@ -44,7 +44,7 @@ export type Database = {
           }
         ];
       };
-      customers: {
+      sellers: {
         Row: {
           id: number;
           full_name: string;
@@ -115,39 +115,64 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "products_seller_id_fkey";
+            foreignKeyName: "products_seller_id_fkey"; // <-- исправлено
             columns: ["seller_id"];
             isOneToOne: false;
-            referencedRelation: "customers";
+            referencedRelation: "sellers";
             referencedColumns: ["id"];
           }
         ];
       };
+
       orders: {
         Row: {
           id: number;
-          customer_id: number;
+          customer_id: string;
+          seller_id?: number;
           date_created: string;
           total_amount: number;
+          email: string;
+          first_name: string;
+          last_name: string;
+          address: string;
+          city: string;
+          postal_code: string;
+          country: string;
         };
         Insert: {
           id?: number;
-          customer_id: number;
+          customer_id: string;
+          seller_id?: number;
           date_created?: string;
           total_amount: number;
+          email: string;
+          first_name: string;
+          last_name: string;
+          address: string;
+          city: string;
+          postal_code: string;
+          country: string;
         };
         Update: {
           id?: number;
-          customer_id?: number;
+          customer_id?: string;
+          seller_id?: number;
           date_created?: string;
           total_amount?: number;
+          email?: string;
+          first_name?: string;
+          last_name?: string;
+          address?: string;
+          city?: string;
+          postal_code?: string;
+          country?: string;
         };
         Relationships: [
           {
-            foreignKeyName: "orders_customer_id_fkey";
-            columns: ["customer_id"];
+            foreignKeyName: "orders_seller_id_fkey";
+            columns: ["seller_id"];
             isOneToOne: false;
-            referencedRelation: "customers";
+            referencedRelation: "sellers";
             referencedColumns: ["id"];
           }
         ];

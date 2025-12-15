@@ -17,6 +17,13 @@ import {
   Trash2,
   Eye,
   X,
+  Save,
+  Database,
+  Tag,
+  FolderTree,
+  ShoppingBag,
+  Store,
+  List,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
@@ -40,249 +47,395 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase";
+
+// Type definitions
+type TableName =
+  | "products"
+  | "categories"
+  | "sellers"
+  | "attributes"
+  | "product_categories"
+  | "product_attributes";
+
+interface Product {
+  id: number;
+  name: string;
+  price: number;
+  quantity: number;
+  status: string;
+  seller_id: number | null;
+  description: string;
+  mini_description: string;
+}
+
+interface Category {
+  id: number;
+  name: string;
+  parent_id: number | null;
+}
+
+interface Seller {
+  id: number;
+  full_name: string;
+  address: string;
+  phone: string;
+}
+
+interface Attribute {
+  id: number;
+  name: string;
+}
+
+interface ProductCategory {
+  id: number;
+  product_id: number;
+  category_id: number;
+}
+
+interface ProductAttribute {
+  id: number;
+  product_id: number;
+  attribute_id: number;
+  value: string;
+}
 
 export default function AdminPage() {
   const { user } = useAuth();
   const router = useRouter();
-  const [stats, setStats] = useState({
-    totalRevenue: 45231.89,
-    totalOrders: 1234,
-    totalProducts: 89,
-    totalUsers: 2456,
-  });
-
-  const [recentOrders] = useState([
-    {
-      id: "ORD-001",
-      customer: "John Doe",
-      total: 299.99,
-      status: "completed",
-      date: "2024-01-15",
-    },
-    {
-      id: "ORD-002",
-      customer: "Jane Smith",
-      total: 199.99,
-      status: "processing",
-      date: "2024-01-14",
-    },
-    {
-      id: "ORD-003",
-      customer: "Bob Johnson",
-      total: 449.99,
-      status: "shipped",
-      date: "2024-01-13",
-    },
-    {
-      id: "ORD-004",
-      customer: "Alice Brown",
-      total: 89.99,
-      status: "pending",
-      date: "2024-01-12",
-    },
-  ]);
-
-  const [products, setProducts] = useState([
-    {
-      id: "1",
-      name: "Premium Wireless Headphones",
-      price: 299.99,
-      stock: 45,
-      status: "active",
-    },
-    {
-      id: "2",
-      name: "Smart Fitness Watch",
-      price: 199.99,
-      stock: 23,
-      status: "active",
-    },
-    {
-      id: "3",
-      name: "Luxury Leather Bag",
-      price: 449.99,
-      stock: 12,
-      status: "active",
-    },
-    {
-      id: "4",
-      name: "Professional Camera",
-      price: 899.99,
-      stock: 8,
-      status: "low_stock",
-    },
-  ]);
-
-  const [showAddProductModal, setShowAddProductModal] = useState(false);
-  const [newProduct, setNewProduct] = useState({
-    name: "",
-    price: "",
-    originalPrice: "",
-    category: "",
-    brand: "",
-    description: "",
-    images: [""],
-    stock: "",
-    isNew: false,
-    isSale: false,
-  });
-
   const { toast } = useToast();
 
-  useEffect(() => {
-    // Check if user is admin by role instead of hardcoded email
-    if (!user || user.role !== "admin") {
-      router.push("/");
-    }
-  }, [user, router]);
+  const [stats, setStats] = useState({
+    totalRevenue: 0,
+    totalOrders: 0,
+    totalProducts: 0,
+    totalUsers: 0,
+  });
 
-  // Show loading or redirect if not admin
-  if (!user || user.role !== "admin") {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Access Denied
-          </h1>
-          <p className="text-gray-600">
-            You need admin privileges to access this page.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // State for each table
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [sellers, setSellers] = useState<Seller[]>([]);
+  const [attributes, setAttributes] = useState<Attribute[]>([]);
+  const [productCategories, setProductCategories] = useState<ProductCategory[]>(
+    []
+  );
+  const [productAttributes, setProductAttributes] = useState<
+    ProductAttribute[]
+  >([]);
+
+  // Modal states
+  const [showModal, setShowModal] = useState(false);
+  const [modalMode, setModalMode] = useState<"add" | "edit">("add");
+  const [currentTable, setCurrentTable] = useState<TableName>("products");
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch all data
+  useEffect(() => {
+    fetchAllData();
+  }, []);
+
+  const fetchAllData = async () => {
+    setLoading(true);
+    try {
+      await Promise.all([
+        fetchProducts(),
+        fetchCategories(),
+        fetchSellers(),
+        fetchAttributes(),
+        fetchProductCategories(),
+        fetchProductAttributes(),
+        fetchStats(),
+      ]);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      toast({
+        title: "Error loading data",
+        description: "Failed to load admin panel data",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const { data: orders, error: ordersError } = await supabase
+        .from("orders")
+        .select("total_amount");
+
+      const { data: products, error: productsError } = await supabase
+        .from("products")
+        .select("id");
+
+      if (!ordersError && orders) {
+        const totalRevenue = orders.reduce(
+          (sum, order) => sum + Number(order.total_amount),
+          0
+        );
+        setStats((prev) => ({
+          ...prev,
+          totalRevenue,
+          totalOrders: orders.length,
+        }));
+      }
+
+      if (!productsError && products) {
+        setStats((prev) => ({
+          ...prev,
+          totalProducts: products.length,
+        }));
+      }
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    }
+  };
+
+  const fetchProducts = async () => {
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .order("id");
+    if (!error && data) setProducts(data);
+  };
+
+  const fetchCategories = async () => {
+    const { data, error } = await supabase
+      .from("categories")
+      .select("*")
+      .order("id");
+    if (!error && data) setCategories(data);
+  };
+
+  const fetchSellers = async () => {
+    const { data, error } = await supabase
+      .from("sellers")
+      .select("*")
+      .order("id");
+    if (!error && data) setSellers(data);
+  };
+
+  const fetchAttributes = async () => {
+    const { data, error } = await supabase
+      .from("attributes")
+      .select("*")
+      .order("id");
+    if (!error && data) setAttributes(data);
+  };
+
+  const fetchProductCategories = async () => {
+    const { data, error } = await supabase
+      .from("product_categories")
+      .select("*")
+      .order("id");
+    if (!error && data) setProductCategories(data);
+  };
+
+  const fetchProductAttributes = async () => {
+    const { data, error } = await supabase
+      .from("product_attributes")
+      .select("*")
+      .order("id");
+    if (!error && data) setProductAttributes(data);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "completed":
+      case "free":
         return "bg-green-100 text-green-800";
-      case "processing":
-        return "bg-blue-100 text-blue-800";
-      case "shipped":
-        return "bg-purple-100 text-purple-800";
-      case "pending":
+      case "reserved":
         return "bg-yellow-100 text-yellow-800";
-      case "active":
-        return "bg-green-100 text-green-800";
-      case "low_stock":
+      case "sold":
         return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
   };
 
-  const handleAddProduct = () => {
-    if (!newProduct.name || !newProduct.price || !newProduct.category) {
+  // CRUD Operations
+  const handleAdd = (table: TableName) => {
+    setCurrentTable(table);
+    setModalMode("add");
+    setEditingItem(getEmptyItem(table));
+    setShowModal(true);
+  };
+
+  const handleEdit = (table: TableName, item: any) => {
+    setCurrentTable(table);
+    setModalMode("edit");
+    setEditingItem({ ...item });
+    setShowModal(true);
+  };
+
+  const handleDelete = async (table: TableName, id: number) => {
+    if (!confirm("Are you sure you want to delete this item?")) return;
+
+    const { error } = await supabase.from(table).delete().eq("id", id);
+
+    if (error) {
       toast({
-        title: "Please fill in all required fields",
-        description: "Name, price, and category are required.",
+        title: "Error deleting item",
+        description: error.message,
         variant: "destructive",
       });
       return;
     }
-
-    const product = {
-      id: (products.length + 1).toString(),
-      name: newProduct.name,
-      price: Number.parseFloat(newProduct.price),
-      originalPrice: newProduct.originalPrice
-        ? Number.parseFloat(newProduct.originalPrice)
-        : undefined,
-      stock: Number.parseInt(newProduct.stock) || 0,
-      status: Number.parseInt(newProduct.stock) > 10 ? "active" : "low_stock",
-    };
-
-    // In a real app, this would make an API call
-    setProducts((prev) => [...prev, product]);
-    setNewProduct({
-      name: "",
-      price: "",
-      originalPrice: "",
-      category: "",
-      brand: "",
-      description: "",
-      images: [""],
-      stock: "",
-      isNew: false,
-      isSale: false,
-    });
-    setShowAddProductModal(false);
 
     toast({
-      title: "Product added successfully!",
-      description: `${newProduct.name} has been added to your inventory.`,
+      title: "Item deleted successfully",
     });
+
+    // Refresh the specific table
+    refreshTable(table);
   };
 
-  const handleImageChange = (index: number, value: string) => {
-    const updatedImages = [...newProduct.images];
-    updatedImages[index] = value;
-    setNewProduct((prev) => ({ ...prev, images: updatedImages }));
-  };
+  const handleSave = async () => {
+    if (!editingItem) return;
 
-  const handleImageUpload = (
-    index: number,
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Validate file size (5MB limit)
-    if (file.size > 5 * 1024 * 1024) {
+    // Validation
+    if (!validateItem(currentTable, editingItem)) {
       toast({
-        title: "File too large",
-        description: "Please select an image smaller than 5MB.",
+        title: "Validation Error",
+        description: "Please fill in all required fields",
         variant: "destructive",
       });
       return;
     }
 
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
+    if (modalMode === "add") {
+      // Remove id completely to let database auto-generate it
+      const itemToInsert = { ...editingItem };
+      delete itemToInsert.id;
+
+      const { error } = await supabase.from(currentTable).insert(itemToInsert);
+
+      if (error) {
+        toast({
+          title: "Error adding item",
+          description: error.message,
+          variant: "destructive",
+        });
+        console.error("Insert error:", error);
+        return;
+      }
+
       toast({
-        title: "Invalid file type",
-        description: "Please select a valid image file.",
-        variant: "destructive",
+        title: "Item added successfully",
       });
-      return;
+    } else {
+      // For update, only send the fields that exist in the table
+      const itemToUpdate = { ...editingItem };
+      delete itemToUpdate.id; // Remove ID from update payload
+
+      const { error } = await supabase
+        .from(currentTable)
+        .update(itemToUpdate)
+        .eq("id", editingItem.id);
+
+      if (error) {
+        toast({
+          title: "Error updating item",
+          description: error.message,
+          variant: "destructive",
+        });
+        console.error("Update error:", error);
+        return;
+      }
+
+      toast({
+        title: "Item updated successfully",
+      });
     }
 
-    // Create preview URL
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      handleImageChange(index, result);
-
-      toast({
-        title: "Image uploaded successfully!",
-        description: `${file.name} has been added to your product.`,
-      });
-    };
-    reader.readAsDataURL(file);
+    setShowModal(false);
+    refreshTable(currentTable);
   };
 
-  const removeImage = (index: number) => {
-    handleImageChange(index, "");
-  };
-
-  const addImageField = () => {
-    setNewProduct((prev) => ({ ...prev, images: [...prev.images, ""] }));
-  };
-
-  const removeImageField = (index: number) => {
-    if (newProduct.images.length > 1) {
-      const updatedImages = newProduct.images.filter((_, i) => i !== index);
-      setNewProduct((prev) => ({ ...prev, images: updatedImages }));
+  const refreshTable = (table: TableName) => {
+    switch (table) {
+      case "products":
+        fetchProducts();
+        break;
+      case "categories":
+        fetchCategories();
+        break;
+      case "sellers":
+        fetchSellers();
+        break;
+      case "attributes":
+        fetchAttributes();
+        break;
+      case "product_categories":
+        fetchProductCategories();
+        break;
+      case "product_attributes":
+        fetchProductAttributes();
+        break;
     }
   };
+
+  const getEmptyItem = (table: TableName) => {
+    switch (table) {
+      case "products":
+        return {
+          name: "",
+          price: 0,
+          quantity: 0,
+          status: "free",
+          seller_id: null,
+          description: "",
+          mini_description: "",
+        };
+      case "categories":
+        return { name: "", parent_id: null };
+      case "sellers":
+        return { full_name: "", address: "", phone: "" };
+      case "attributes":
+        return { name: "" };
+      case "product_categories":
+        return { product_id: 0, category_id: 0 };
+      case "product_attributes":
+        return { product_id: 0, attribute_id: 0, value: "" };
+    }
+  };
+
+  const validateItem = (table: TableName, item: any) => {
+    switch (table) {
+      case "products":
+        return item.name && item.price >= 0 && item.quantity >= 0;
+      case "categories":
+        return item.name;
+      case "sellers":
+        return item.full_name && item.address && item.phone;
+      case "attributes":
+        return item.name;
+      case "product_categories":
+        return item.product_id > 0 && item.category_id > 0;
+      case "product_attributes":
+        return item.product_id > 0 && item.attribute_id > 0 && item.value;
+      default:
+        return true;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <p className="text-gray-600">Loading admin panel...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
         <p className="text-gray-600 mt-2">
-          Welcome back, {user.email || ""}! Manage your store and monitor
-          performance
+          Welcome back! Manage your database tables
         </p>
       </div>
 
@@ -340,122 +493,141 @@ export default function AdminPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Users</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats.totalUsers.toLocaleString()}
+                <p className="text-sm font-medium text-gray-600">
+                  Total Tables
                 </p>
+                <p className="text-2xl font-bold text-gray-900">6</p>
               </div>
-              <Users className="h-8 w-8 text-orange-600" />
+              <Database className="h-8 w-8 text-orange-600" />
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Main Content */}
-      <Tabs defaultValue="orders" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="orders">Orders</TabsTrigger>
+      <Tabs defaultValue="products" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="products">Products</TabsTrigger>
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="categories">Categories</TabsTrigger>
+          <TabsTrigger value="sellers">Sellers</TabsTrigger>
+          <TabsTrigger value="attributes">Attributes</TabsTrigger>
+          <TabsTrigger value="product_categories">Prod-Cat</TabsTrigger>
+          <TabsTrigger value="product_attributes">Prod-Attr</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="orders">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Recent Orders</CardTitle>
-              <Button size="sm">
-                <Plus className="mr-2 h-4 w-4" />
-                New Order
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentOrders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium">{order.id}</TableCell>
-                      <TableCell>{order.customer}</TableCell>
-                      <TableCell>${order.total}</TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(order.status)}>
-                          {order.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{order.date}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
+        {/* Products Tab */}
         <TabsContent value="products">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Product Management</CardTitle>
-              <Button size="sm" onClick={() => setShowAddProductModal(true)}>
+              <Button size="sm" onClick={() => handleAdd("products")}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Product
               </Button>
             </CardHeader>
             <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Price</TableHead>
+                      <TableHead>Quantity</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Seller ID</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {products.map((product) => (
+                      <TableRow key={product.id}>
+                        <TableCell>{product.id}</TableCell>
+                        <TableCell className="font-medium">
+                          {product.name}
+                        </TableCell>
+                        <TableCell>${product.price}</TableCell>
+                        <TableCell>{product.quantity}</TableCell>
+                        <TableCell>
+                          <Badge className={getStatusColor(product.status)}>
+                            {product.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{product.seller_id || "N/A"}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit("products", product)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600"
+                              onClick={() =>
+                                handleDelete("products", product.id)
+                              }
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Categories Tab */}
+        <TabsContent value="categories">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Category Management</CardTitle>
+              <Button size="sm" onClick={() => handleAdd("categories")}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Category
+              </Button>
+            </CardHeader>
+            <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Product Name</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Stock</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Parent ID</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {products.map((product) => (
-                    <TableRow key={product.id}>
+                  {categories.map((category) => (
+                    <TableRow key={category.id}>
+                      <TableCell>{category.id}</TableCell>
                       <TableCell className="font-medium">
-                        {product.name}
+                        {category.name}
                       </TableCell>
-                      <TableCell>${product.price}</TableCell>
-                      <TableCell>{product.stock}</TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(product.status)}>
-                          {product.status.replace("_", " ")}
-                        </Badge>
-                      </TableCell>
+                      <TableCell>{category.parent_id || "N/A"}</TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit("categories", category)}
+                          >
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
                             className="text-red-600"
+                            onClick={() =>
+                              handleDelete("categories", category.id)
+                            }
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -469,322 +641,617 @@ export default function AdminPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="users">
+        {/* Sellers Tab */}
+        <TabsContent value="sellers">
           <Card>
-            <CardHeader>
-              <CardTitle>User Management</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Seller Management</CardTitle>
+              <Button size="sm" onClick={() => handleAdd("sellers")}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Seller
+              </Button>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-600">
-                User management features coming soon...
-              </p>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Full Name</TableHead>
+                    <TableHead>Address</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sellers.map((seller) => (
+                    <TableRow key={seller.id}>
+                      <TableCell>{seller.id}</TableCell>
+                      <TableCell className="font-medium">
+                        {seller.full_name}
+                      </TableCell>
+                      <TableCell>{seller.address}</TableCell>
+                      <TableCell>{seller.phone}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit("sellers", seller)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600"
+                            onClick={() => handleDelete("sellers", seller.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="analytics">
+        {/* Attributes Tab */}
+        <TabsContent value="attributes">
           <Card>
-            <CardHeader>
-              <CardTitle>Analytics & Reports</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Attribute Management</CardTitle>
+              <Button size="sm" onClick={() => handleAdd("attributes")}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Attribute
+              </Button>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-600">
-                Analytics dashboard coming soon...
-              </p>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {attributes.map((attribute) => (
+                    <TableRow key={attribute.id}>
+                      <TableCell>{attribute.id}</TableCell>
+                      <TableCell className="font-medium">
+                        {attribute.name}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit("attributes", attribute)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600"
+                            onClick={() =>
+                              handleDelete("attributes", attribute.id)
+                            }
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Product Categories Tab */}
+        <TabsContent value="product_categories">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Product-Category Relations</CardTitle>
+              <Button size="sm" onClick={() => handleAdd("product_categories")}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Relation
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Product ID</TableHead>
+                    <TableHead>Category ID</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {productCategories.map((pc) => (
+                    <TableRow key={pc.id}>
+                      <TableCell>{pc.id}</TableCell>
+                      <TableCell>{pc.product_id}</TableCell>
+                      <TableCell>{pc.category_id}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit("product_categories", pc)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600"
+                            onClick={() =>
+                              handleDelete("product_categories", pc.id)
+                            }
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Product Attributes Tab */}
+        <TabsContent value="product_attributes">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Product-Attribute Relations</CardTitle>
+              <Button size="sm" onClick={() => handleAdd("product_attributes")}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Relation
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Product ID</TableHead>
+                    <TableHead>Attribute ID</TableHead>
+                    <TableHead>Value</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {productAttributes.map((pa) => (
+                    <TableRow key={pa.id}>
+                      <TableCell>{pa.id}</TableCell>
+                      <TableCell>{pa.product_id}</TableCell>
+                      <TableCell>{pa.attribute_id}</TableCell>
+                      <TableCell>{pa.value}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit("product_attributes", pa)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600"
+                            onClick={() =>
+                              handleDelete("product_attributes", pa.id)
+                            }
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
-      {/* Add Product Modal */}
-      {showAddProductModal && (
+      {/* Universal Edit/Add Modal */}
+      {showModal && editingItem && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Add New Product</h2>
-              <Button
-                variant="ghost"
-                onClick={() => setShowAddProductModal(false)}
-              >
+              <h2 className="text-2xl font-bold">
+                {modalMode === "add" ? "Add" : "Edit"}{" "}
+                {currentTable.replace("_", " ")}
+              </h2>
+              <Button variant="ghost" onClick={() => setShowModal(false)}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
 
-            <div className="p-6 space-y-6">
-              {/* Basic Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Basic Information</h3>
-
-                <div className="grid md:grid-cols-2 gap-4">
+            <div className="p-6 space-y-4">
+              {/* Products Form */}
+              {currentTable === "products" && (
+                <>
                   <div className="space-y-2">
-                    <Label htmlFor="productName">Product Name *</Label>
+                    <Label>Name *</Label>
                     <Input
-                      id="productName"
-                      value={newProduct.name}
+                      value={editingItem.name || ""}
                       onChange={(e) =>
-                        setNewProduct((prev) => ({
-                          ...prev,
-                          name: e.target.value,
-                        }))
+                        setEditingItem({ ...editingItem, name: e.target.value })
                       }
-                      placeholder="Enter product name"
                     />
                   </div>
-
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Price *</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={editingItem.price || 0}
+                        onChange={(e) =>
+                          setEditingItem({
+                            ...editingItem,
+                            price: parseFloat(e.target.value),
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Quantity *</Label>
+                      <Input
+                        type="number"
+                        value={editingItem.quantity || 0}
+                        onChange={(e) =>
+                          setEditingItem({
+                            ...editingItem,
+                            quantity: parseInt(e.target.value),
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
                   <div className="space-y-2">
-                    <Label htmlFor="brand">Brand</Label>
-                    <Input
-                      id="brand"
-                      value={newProduct.brand}
-                      onChange={(e) =>
-                        setNewProduct((prev) => ({
-                          ...prev,
-                          brand: e.target.value,
-                        }))
+                    <Label>Status</Label>
+                    <Select
+                      value={editingItem.status || "free"}
+                      onValueChange={(value) =>
+                        setEditingItem({ ...editingItem, status: value })
                       }
-                      placeholder="Enter brand name"
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="free">Free</SelectItem>
+                        <SelectItem value="reserved">Reserved</SelectItem>
+                        <SelectItem value="sold">Sold</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Seller ID</Label>
+                    <Select
+                      value={editingItem.seller_id?.toString() || "none"}
+                      onValueChange={(value) =>
+                        setEditingItem({
+                          ...editingItem,
+                          seller_id: value === "none" ? null : parseInt(value),
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select seller" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {sellers.map((seller) => (
+                          <SelectItem
+                            key={seller.id}
+                            value={seller.id.toString()}
+                          >
+                            {seller.full_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Description</Label>
+                    <Textarea
+                      value={editingItem.description || ""}
+                      onChange={(e) =>
+                        setEditingItem({
+                          ...editingItem,
+                          description: e.target.value,
+                        })
+                      }
+                      rows={3}
                     />
                   </div>
-                </div>
+                  <div className="space-y-2">
+                    <Label>Mini Description</Label>
+                    <Textarea
+                      value={editingItem.mini_description || ""}
+                      onChange={(e) =>
+                        setEditingItem({
+                          ...editingItem,
+                          mini_description: e.target.value,
+                        })
+                      }
+                      rows={2}
+                    />
+                  </div>
+                </>
+              )}
 
+              {/* Categories Form */}
+              {currentTable === "categories" && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Name *</Label>
+                    <Input
+                      value={editingItem.name || ""}
+                      onChange={(e) =>
+                        setEditingItem({ ...editingItem, name: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Parent Category</Label>
+                    <Select
+                      value={editingItem.parent_id?.toString() || "none"}
+                      onValueChange={(value) =>
+                        setEditingItem({
+                          ...editingItem,
+                          parent_id: value === "none" ? null : parseInt(value),
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select parent category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {categories
+                          .filter((c) => c.id !== editingItem.id)
+                          .map((category) => (
+                            <SelectItem
+                              key={category.id}
+                              value={category.id.toString()}
+                            >
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+
+              {/* Sellers Form */}
+              {currentTable === "sellers" && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Full Name *</Label>
+                    <Input
+                      value={editingItem.full_name || ""}
+                      onChange={(e) =>
+                        setEditingItem({
+                          ...editingItem,
+                          full_name: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Address *</Label>
+                    <Textarea
+                      value={editingItem.address || ""}
+                      onChange={(e) =>
+                        setEditingItem({
+                          ...editingItem,
+                          address: e.target.value,
+                        })
+                      }
+                      rows={3}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Phone *</Label>
+                    <Input
+                      value={editingItem.phone || ""}
+                      onChange={(e) =>
+                        setEditingItem({
+                          ...editingItem,
+                          phone: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Attributes Form */}
+              {currentTable === "attributes" && (
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={newProduct.description}
+                  <Label>Name *</Label>
+                  <Input
+                    value={editingItem.name || ""}
                     onChange={(e) =>
-                      setNewProduct((prev) => ({
-                        ...prev,
-                        description: e.target.value,
-                      }))
+                      setEditingItem({ ...editingItem, name: e.target.value })
                     }
-                    placeholder="Enter product description"
-                    rows={3}
                   />
                 </div>
+              )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="category">Category *</Label>
-                  <Select
-                    value={newProduct.category}
-                    onValueChange={(value) =>
-                      setNewProduct((prev) => ({ ...prev, category: value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="electronics">Electronics</SelectItem>
-                      <SelectItem value="fashion">Fashion</SelectItem>
-                      <SelectItem value="home">Home & Garden</SelectItem>
-                      <SelectItem value="sports">Sports & Fitness</SelectItem>
-                      <SelectItem value="beauty">
-                        Beauty & Personal Care
-                      </SelectItem>
-                      <SelectItem value="books">Books & Media</SelectItem>
-                      <SelectItem value="automotive">Automotive</SelectItem>
-                      <SelectItem value="photography">Photography</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Pricing */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Pricing</h3>
-
-                <div className="grid md:grid-cols-3 gap-4">
+              {/* Product Categories Form */}
+              {currentTable === "product_categories" && (
+                <>
                   <div className="space-y-2">
-                    <Label htmlFor="price">Price *</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      step="0.01"
-                      value={newProduct.price}
-                      onChange={(e) =>
-                        setNewProduct((prev) => ({
-                          ...prev,
-                          price: e.target.value,
-                        }))
+                    <Label>Product *</Label>
+                    <Select
+                      value={
+                        editingItem.product_id?.toString() ||
+                        products[0]?.id?.toString() ||
+                        "1"
                       }
-                      placeholder="0.00"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="originalPrice">Original Price</Label>
-                    <Input
-                      id="originalPrice"
-                      type="number"
-                      step="0.01"
-                      value={newProduct.originalPrice}
-                      onChange={(e) =>
-                        setNewProduct((prev) => ({
-                          ...prev,
-                          originalPrice: e.target.value,
-                        }))
+                      onValueChange={(value) =>
+                        setEditingItem({
+                          ...editingItem,
+                          product_id: parseInt(value),
+                        })
                       }
-                      placeholder="0.00"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="stock">Stock Quantity</Label>
-                    <Input
-                      id="stock"
-                      type="number"
-                      value={newProduct.stock}
-                      onChange={(e) =>
-                        setNewProduct((prev) => ({
-                          ...prev,
-                          stock: e.target.value,
-                        }))
-                      }
-                      placeholder="0"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Product Images */}
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold">Product Images</h3>
-                  <Button variant="outline" size="sm" onClick={addImageField}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Image
-                  </Button>
-                </div>
-
-                <div className="space-y-4">
-                  {newProduct.images.map((image, index) => (
-                    <div
-                      key={index}
-                      className="border rounded-lg p-4 space-y-3"
                     >
-                      <div className="flex justify-between items-center">
-                        <Label className="text-sm font-medium">
-                          Image {index + 1}
-                        </Label>
-                        {newProduct.images.length > 1 && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => removeImageField(index)}
-                            className="text-red-600 hover:text-red-700"
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select product" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {products.map((product) => (
+                          <SelectItem
+                            key={product.id}
+                            value={product.id.toString()}
                           >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-
-                      {/* File Upload Input */}
-                      <div className="space-y-2">
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handleImageUpload(index, e)}
-                          className="cursor-pointer"
-                        />
-                        <p className="text-xs text-gray-500">
-                          Upload JPG, PNG, or WebP images (max 5MB)
-                        </p>
-                      </div>
-
-                      {/* Image Preview */}
-                      {image && (
-                        <div className="relative">
-                          <img
-                            src={image || "/placeholder.svg"}
-                            alt={`Product preview ${index + 1}`}
-                            className="w-full h-32 object-cover rounded-md border"
-                          />
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => removeImage(index)}
-                            className="absolute top-2 right-2"
+                            {product.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Category *</Label>
+                    <Select
+                      value={
+                        editingItem.category_id?.toString() ||
+                        categories[0]?.id?.toString() ||
+                        "1"
+                      }
+                      onValueChange={(value) =>
+                        setEditingItem({
+                          ...editingItem,
+                          category_id: parseInt(value),
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((category) => (
+                          <SelectItem
+                            key={category.id}
+                            value={category.id.toString()}
                           >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
 
-                      {/* Alternative URL Input */}
-                      <div className="space-y-2">
-                        <Label className="text-sm text-gray-600">
-                          Or enter image URL:
-                        </Label>
-                        <Input
-                          value={
-                            typeof image === "string" &&
-                            image.startsWith("http")
-                              ? image
-                              : ""
-                          }
-                          onChange={(e) =>
-                            handleImageChange(index, e.target.value)
-                          }
-                          placeholder="https://example.com/image.jpg"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <p className="text-sm text-gray-500">
-                  Upload product images or provide URLs. The first image will be
-                  used as the main product image.
-                </p>
-              </div>
-
-              {/* Product Flags */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Product Flags</h3>
-
-                <div className="flex gap-6">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="isNew"
-                      checked={newProduct.isNew}
-                      onCheckedChange={(checked) =>
-                        setNewProduct((prev) => ({ ...prev, isNew: !!checked }))
+              {/* Product Attributes Form */}
+              {currentTable === "product_attributes" && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Product *</Label>
+                    <Select
+                      value={
+                        editingItem.product_id?.toString() ||
+                        products[0]?.id?.toString() ||
+                        "1"
+                      }
+                      onValueChange={(value) =>
+                        setEditingItem({
+                          ...editingItem,
+                          product_id: parseInt(value),
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select product" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {products.map((product) => (
+                          <SelectItem
+                            key={product.id}
+                            value={product.id.toString()}
+                          >
+                            {product.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Attribute *</Label>
+                    <Select
+                      value={
+                        editingItem.attribute_id?.toString() ||
+                        attributes[0]?.id?.toString() ||
+                        "1"
+                      }
+                      onValueChange={(value) =>
+                        setEditingItem({
+                          ...editingItem,
+                          attribute_id: parseInt(value),
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select attribute" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {attributes.map((attribute) => (
+                          <SelectItem
+                            key={attribute.id}
+                            value={attribute.id.toString()}
+                          >
+                            {attribute.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Value *</Label>
+                    <Input
+                      value={editingItem.value || ""}
+                      onChange={(e) =>
+                        setEditingItem({
+                          ...editingItem,
+                          value: e.target.value,
+                        })
                       }
                     />
-                    <Label htmlFor="isNew">Mark as New Product</Label>
                   </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="isSale"
-                      checked={newProduct.isSale}
-                      onCheckedChange={(checked) =>
-                        setNewProduct((prev) => ({
-                          ...prev,
-                          isSale: !!checked,
-                        }))
-                      }
-                    />
-                    <Label htmlFor="isSale">Mark as Sale Item</Label>
-                  </div>
-                </div>
-              </div>
+                </>
+              )}
             </div>
 
             {/* Modal Footer */}
             <div className="p-6 border-t bg-gray-50 flex justify-end gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setShowAddProductModal(false)}
-              >
+              <Button variant="outline" onClick={() => setShowModal(false)}>
                 Cancel
               </Button>
               <Button
-                onClick={handleAddProduct}
+                onClick={handleSave}
                 className="bg-gradient-to-r from-purple-600 to-pink-600"
               >
-                Add Product
+                <Save className="mr-2 h-4 w-4" />
+                {modalMode === "add" ? "Add" : "Save"}
               </Button>
             </div>
           </div>
