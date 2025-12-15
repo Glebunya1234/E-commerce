@@ -83,7 +83,7 @@ export default function LoginPage() {
               Welcome Back
             </CardTitle>
             <CardDescription className="text-gray-600">
-              Sign in to your EliteStore account
+              Sign in to your E-Commerce account
             </CardDescription>
           </CardHeader>
 
@@ -141,17 +141,6 @@ export default function LoginPage() {
                       <Eye className="h-4 w-4 text-gray-400" />
                     )}
                   </Button>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="text-sm">
-                  <Link
-                    href="/auth/forgot-password"
-                    className="text-purple-600 hover:text-purple-700"
-                  >
-                    Forgot your password?
-                  </Link>
                 </div>
               </div>
             </CardContent>

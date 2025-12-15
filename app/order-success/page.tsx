@@ -187,7 +187,6 @@ export default function OrderSuccessPage() {
           </CardContent>
         </Card>
 
-        {/* 🚚 Order tracking */}
         <Card className="mb-8">
           <CardHeader>
             <CardTitle className="flex items-center">

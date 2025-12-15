@@ -147,7 +147,7 @@ export default function RegisterPage() {
               Create Account
             </CardTitle>
             <CardDescription className="text-gray-600">
-              Join EliteStore and start your shopping journey
+              Join E-Commerce and start your shopping journey
             </CardDescription>
           </CardHeader>
 
