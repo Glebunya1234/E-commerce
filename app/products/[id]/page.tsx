@@ -292,7 +292,10 @@ export default function ProductDetailPage() {
             <ChevronRight className="h-4 w-4" />
 
             {parentCategories.map((cat, index) => (
-              <span key={cat.id} className="flex items-center space-x-2">
+              <span
+                key={`${cat.id}-${index}`}
+                className="flex items-center space-x-2"
+              >
                 <Link
                   href={`/categories/${cat.name}`}
                   className="hover:text-purple-600"
